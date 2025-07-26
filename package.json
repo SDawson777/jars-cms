@@ -4,12 +4,11 @@
   "version": "1.0.0",
   "main": "server.ts",
   "license": "UNLICENSED",
-  "description": "Sanity Content Studio and Express backend for Jars Educational Greenhouse integration.",
+  "description": "Jars CMS with Sanity Studio + Express API for educational articles.",
   "author": "",
   "scripts": {
     "dev": "concurrently \"sanity dev\" \"nodemon server.ts\"",
     "studio": "sanity dev",
-    "studio:start": "sanity start",
     "studio:build": "sanity build",
     "studio:deploy": "sanity deploy",
     "studio:deploy-graphql": "sanity graphql deploy",
@@ -19,24 +18,24 @@
   },
   "keywords": ["sanity", "cms", "express", "api"],
   "dependencies": {
+    "@sanity/vision": "^3.97.1",
+    "concurrently": "^8.2.2",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
-    "@sanity/vision": "^3.97.1",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
     "sanity": "^3.97.1",
-    "styled-components": "^6.1.18",
-    "react": "^19.1",
-    "react-dom": "^19.1",
-    "concurrently": "^8.2.2"
+    "styled-components": "^6.1.18"
   },
   "devDependencies": {
-    "typescript": "^5.8.3",
-    "ts-node": "^10.9.2",
-    "nodemon": "^3.1.10",
-    "@types/express": "^5.0.3",
-    "@types/react": "^19.1",
     "@sanity/eslint-config-studio": "^5.0.2",
-    "eslint": "^9.28",
-    "prettier": "^3.5"
+    "@types/express": "^5.0.3",
+    "@types/react": "^19.1.0",
+    "eslint": "^9.28.0",
+    "nodemon": "^3.1.10",
+    "prettier": "^3.5.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
   },
   "prettier": {
     "semi": false,

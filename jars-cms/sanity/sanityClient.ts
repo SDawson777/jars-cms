@@ -1,10 +1,9 @@
-// jars-cms/sanity/sanityClient.ts
-import sanityClient from '@sanity/client';
+import sanityClient from '@sanity/client'
 
 export const client = sanityClient({
-  projectId: 'yourProjectId',          // Replace with actual
+  projectId: 'ygbu28p2',             // ✅ Replace with actual project ID
   dataset: 'production',
-  useCdn: false,
   apiVersion: '2023-07-25',
-  token: process.env.SANITY_API_TOKEN, // Set in .env
-});
+  useCdn: false,
+  token: process.env.SANITY_API_TOKEN_SECRET // ✅ UPDATED for Netlify compatibility
+})
