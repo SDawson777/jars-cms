@@ -6,6 +6,8 @@ import contentRoutes from '../routes/content'
 import productsRoutes from '../routes/products'
 import personalizationRoutes from '../routes/personalization'
 import inventoryRoutes from '../routes/inventory'
+import cartRoutes from '../routes/cart'
+import orderRoutes from '../routes/order'
 
 dotenv.config()
 
@@ -19,6 +21,8 @@ app.use('/api/v1/content', contentRoutes)
 app.use('/api/v1', productsRoutes)
 app.use('/api/v1', personalizationRoutes)
 app.use('/api/v1', inventoryRoutes)
+app.use('/api/v1', cartRoutes)
+app.use('/api/v1', orderRoutes)
 
 app.listen(PORT, () => {
   console.log(`\uD83D\uDCDA Jars CMS API running at http://localhost:${PORT}`)
