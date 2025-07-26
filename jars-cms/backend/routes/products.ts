@@ -38,4 +38,25 @@ router.get('/products', async (req, res) => {
   }
 })
 
+router.get('/products/:id', async (req, res) => {
+  const id = req.params.id
+  const storeId = req.query.storeId as string
+  try {
+    const client = getClient(usePreview(req))
+    const query = `*[_type == "product" && _id == "${id}"][0]`
+    const product = await client.fetch(query)
+    const inventoryData = fs.existsSync(path.resolve(__dirname, '../data/inventory.json'))
+      ? JSON.parse(fs.readFileSync(path.resolve(__dirname, '../data/inventory.json'), 'utf8'))
+      : {}
+    const invStore = (inventoryData as any)[storeId] || {}
+    const inv = invStore[id] || {price: 0, stock: 0}
+    const isLowStock = inv.stock > 0 && inv.stock <= 5
+    const isSoldOut = inv.stock <= 0
+    setCaching(res)
+    res.json({...product, inventory: {...inv, isLowStock, isSoldOut}})
+  } catch {
+    res.status(404).json({error: 'Not found'})
+  }
+})
+
 export default router
