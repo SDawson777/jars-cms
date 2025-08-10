@@ -2,6 +2,8 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import greenhouseRoutes from './routes/greenhouse';
+import adminRoutes from './routes/admin'
+app.use('/api', adminRoutes)
 
 dotenv.config();
 
