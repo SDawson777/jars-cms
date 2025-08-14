@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import type { Prisma } from "@prisma/client";
 
-export const products = Router();
+export const products = Router()
 
 const CATEGORY_VALUES = [
   "flower",
@@ -49,14 +49,13 @@ const listSchema = z.object({
   cbdMin: z.coerce.number().optional(),
   cbdMax: z.coerce.number().optional(),
   inStock: z.coerce.boolean().optional(),
-  sort: z.enum(["price_asc","price_desc","popular","name_asc","name_desc"]).optional()
-});
+  sort: z.enum(['price_asc', 'price_desc', 'popular', 'name_asc', 'name_desc']).optional(),
+})
 
-products.get("/", async (req,res)=>{
-  const p = listSchema.parse(req.query);
-  const skip = (p.page-1)*p.limit;
+products.get('/', async (req, res) => {
+  const p = listSchema.parse(req.query)
+  const skip = (p.page - 1) * p.limit
 
-  // Base filters
   const spWhere: Prisma.StoreProductWhereInput = {
     storeId: p.storeId,
     active: true,
@@ -70,16 +69,14 @@ products.get("/", async (req,res)=>{
       ...(p.priceMax != null ? { lte: p.priceMax } : {})
     };
   }
-
-  // Product filters
   const productWhere: Prisma.ProductWhereInput = {};
   if (p.q) productWhere.OR = [
     { name:  { contains: p.q, mode:"insensitive" } },
     { brand: { contains: p.q, mode:"insensitive" } },
   ];
   if (p.brand) {
-    const arr = Array.isArray(p.brand) ? p.brand : [p.brand];
-    productWhere.brand = { in: arr };
+    const arr = Array.isArray(p.brand) ? p.brand : [p.brand]
+    productWhere.brand = {in: arr}
   }
   if (p.category) {
     const arr = Array.isArray(p.category) ? p.category : [p.category];
@@ -94,41 +91,82 @@ products.get("/", async (req,res)=>{
 
   // Sort
   const orderBy: Prisma.StoreProductOrderByWithRelationInput[] = [];
+  
   switch (p.sort) {
-    case "price_asc":  orderBy.push({ price:"asc" }); break;
-    case "price_desc": orderBy.push({ price:"desc" }); break;
-    case "name_asc":   orderBy.push({ product:{ name:"asc" } }); break;
-    case "name_desc":  orderBy.push({ product:{ name:"desc" } }); break;
-    case "popular":
-    default:           orderBy.push({ product:{ purchasesLast30d:"desc" } }); break;
+    case 'price_asc':
+      orderBy.push({price: 'asc'})
+      break
+    case 'price_desc':
+      orderBy.push({price: 'desc'})
+      break
+    case 'name_asc':
+      orderBy.push({product: {name: 'asc'}})
+      break
+    case 'name_desc':
+      orderBy.push({product: {name: 'desc'}})
+      break
+    case 'popular':
+    default:
+      orderBy.push({product: {purchasesLast30d: 'desc'}})
+      break
   }
 
-  const [count, items] = await Promise.all([
-    prisma.storeProduct.count({ where: { ...spWhere, product: productWhere } }),
-    prisma.storeProduct.findMany({
-      where: { ...spWhere, product: productWhere },
-      include: { product:true, variant:true },
-      orderBy, skip, take: p.limit
+  const where: any = {...spWhere, product: productWhere}
+
+  const rangeFilters: any[] = []
+  if (p.thcMin != null || p.thcMax != null) {
+    const range = {
+      ...(p.thcMin != null ? {gte: p.thcMin} : {}),
+      ...(p.thcMax != null ? {lte: p.thcMax} : {}),
+    }
+    rangeFilters.push({
+      OR: [
+        {variant: {thcPercent: range}},
+        {
+          AND: [
+            {OR: [{variant: {is: null}}, {variant: {thcPercent: null}}]},
+            {OR: [{product: {thcPercent: null}}, {product: {thcPercent: range}}]},
+          ],
+        },
+      ],
     })
-  ]);
+  }
+  if (p.cbdMin != null || p.cbdMax != null) {
+    const range = {
+      ...(p.cbdMin != null ? {gte: p.cbdMin} : {}),
+      ...(p.cbdMax != null ? {lte: p.cbdMax} : {}),
+    }
+    rangeFilters.push({
+      OR: [
+        {variant: {cbdPercent: range}},
+        {
+          AND: [
+            {OR: [{variant: {is: null}}, {variant: {cbdPercent: null}}]},
+            {OR: [{product: {cbdPercent: null}}, {product: {cbdPercent: range}}]},
+          ],
+        },
+      ],
+    })
+  }
+  if (rangeFilters.length) where.AND = rangeFilters
 
-  const loTHC = p.thcMin ?? -Infinity, hiTHC = p.thcMax ?? Infinity;
-  const loCBD = p.cbdMin ?? -Infinity, hiCBD = p.cbdMax ?? Infinity;
-
-  const filtered = items.filter(sp=>{
-    const thc = sp.variant?.thcPercent ?? sp.product.thcPercent ?? null;
-    const cbd = sp.variant?.cbdPercent ?? sp.product.cbdPercent ?? null;
-    const thcOk = thc==null ? true : (thc>=loTHC && thc<=hiTHC);
-    const cbdOk = cbd==null ? true : (cbd>=loCBD && cbd<=hiCBD);
-    return thcOk && cbdOk;
-  });
+  const [count, items] = await Promise.all([
+    prisma.storeProduct.count({where}),
+    prisma.storeProduct.findMany({
+      where,
+      include: {product: true, variant: true},
+      orderBy,
+      skip,
+      take: p.limit,
+    }),
+  ])
 
   res.json({
-    items: filtered.map(sp=>({
+    items: items.map((sp) => ({
       storeProductId: sp.id,
       productId: sp.productId,
       variantId: sp.variantId ?? null,
-      name: sp.product.name + (sp.variant?.name ? ` — ${sp.variant.name}` : ""),
+      name: sp.product.name + (sp.variant?.name ? ` — ${sp.variant.name}` : ''),
       brand: sp.product.brand,
       category: sp.product.category,
       strainType: sp.product.strainType,
@@ -136,20 +174,22 @@ products.get("/", async (req,res)=>{
       price: sp.price ?? sp.variant?.price ?? sp.product.defaultPrice ?? null,
       stock: sp.stock ?? 0,
       thcPercent: sp.variant?.thcPercent ?? sp.product.thcPercent ?? null,
-      cbdPercent: sp.variant?.cbdPercent ?? sp.product.cbdPercent ?? null
+      cbdPercent: sp.variant?.cbdPercent ?? sp.product.cbdPercent ?? null,
     })),
-    page: p.page, limit: p.limit,
-    total: filtered.length,
-    totalPages: Math.ceil(filtered.length / p.limit)
-  });
-});
+    page: p.page,
+    limit: p.limit,
+    total: count,
+    totalPages: Math.ceil(count / p.limit),
+  })
+})
 
-products.get("/:id", async (req,res)=>{
-  const p = z.object({ id:z.string(), storeId:z.string() }).parse({ ...req.params, ...req.query });
+products.get('/:id', async (req, res) => {
+  const p = z.object({id: z.string(), storeId: z.string()}).parse({...req.params, ...req.query})
   const product = await prisma.product.findUnique({
-    where:{ id:p.id }, include:{ variants:{ where:{ active:true } } }
-  });
-  if(!product) return res.status(404).json({ error:"NOT_FOUND" });
+    where: {id: p.id},
+    include: {variants: {where: {active: true}}},
+  })
+  if (!product) return res.status(404).json({error: 'NOT_FOUND'})
 
   const sps = await prisma.storeProduct.findMany({
     where: { storeId: p.storeId, productId: p.id, active: true },
@@ -161,6 +201,7 @@ products.get("/:id", async (req,res)=>{
     existingVariants.length > 0 ? existingVariants : [null];
   const variants = variantList.map(v => {
     const sp = sps.find(x => (hasVariant(v) ? x.variantId === v.id : x.variantId == null));
+    
     return {
       variantId: v?.id ?? null,
       name: v?.name ?? null,
@@ -168,14 +209,20 @@ products.get("/:id", async (req,res)=>{
       stock: sp?.stock ?? 0,
       thcPercent: v?.thcPercent ?? product.thcPercent ?? null,
       cbdPercent: v?.cbdPercent ?? product.cbdPercent ?? null,
-      sku: v?.sku ?? null
-    };
-  });
+      sku: v?.sku ?? null,
+    }
+  })
 
   res.json({
-    id: product.id, name: product.name, slug: product.slug,
-    brand: product.brand, category: product.category, strainType: product.strainType,
-    description: product.description, thcPercent: product.thcPercent, cbdPercent: product.cbdPercent,
-    variants
-  });
-});
+    id: product.id,
+    name: product.name,
+    slug: product.slug,
+    brand: product.brand,
+    category: product.category,
+    strainType: product.strainType,
+    description: product.description,
+    thcPercent: product.thcPercent,
+    cbdPercent: product.cbdPercent,
+    variants,
+  })
+})
