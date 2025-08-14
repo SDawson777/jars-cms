@@ -82,17 +82,20 @@ products.get('/', async (req, res) => {
       break
   }
 
-  const filters: any[] = []
+  const where: any = {...spWhere, product: productWhere}
+
+  const rangeFilters: any[] = []
   if (p.thcMin != null || p.thcMax != null) {
-    const range: any = {}
-    if (p.thcMin != null) range.gte = p.thcMin
-    if (p.thcMax != null) range.lte = p.thcMax
-    filters.push({
+    const range = {
+      ...(p.thcMin != null ? {gte: p.thcMin} : {}),
+      ...(p.thcMax != null ? {lte: p.thcMax} : {}),
+    }
+    rangeFilters.push({
       OR: [
-        {variant: {is: {thcPercent: range}}},
+        {variant: {thcPercent: range}},
         {
           AND: [
-            {OR: [{variantId: null}, {variant: {is: {thcPercent: null}}}]},
+            {OR: [{variant: {is: null}}, {variant: {thcPercent: null}}]},
             {OR: [{product: {thcPercent: null}}, {product: {thcPercent: range}}]},
           ],
         },
@@ -100,24 +103,23 @@ products.get('/', async (req, res) => {
     })
   }
   if (p.cbdMin != null || p.cbdMax != null) {
-    const range: any = {}
-    if (p.cbdMin != null) range.gte = p.cbdMin
-    if (p.cbdMax != null) range.lte = p.cbdMax
-    filters.push({
+    const range = {
+      ...(p.cbdMin != null ? {gte: p.cbdMin} : {}),
+      ...(p.cbdMax != null ? {lte: p.cbdMax} : {}),
+    }
+    rangeFilters.push({
       OR: [
-        {variant: {is: {cbdPercent: range}}},
+        {variant: {cbdPercent: range}},
         {
           AND: [
-            {OR: [{variantId: null}, {variant: {is: {cbdPercent: null}}}]},
+            {OR: [{variant: {is: null}}, {variant: {cbdPercent: null}}]},
             {OR: [{product: {cbdPercent: null}}, {product: {cbdPercent: range}}]},
           ],
         },
       ],
     })
   }
-
-  const where: any = {...spWhere, product: productWhere}
-  if (filters.length) where.AND = filters
+  if (rangeFilters.length) where.AND = rangeFilters
 
   const [count, items] = await Promise.all([
     prisma.storeProduct.count({where}),
