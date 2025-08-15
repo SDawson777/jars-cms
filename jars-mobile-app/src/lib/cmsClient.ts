@@ -1,4 +1,15 @@
-export const CMS_BASE = process.env.EXPO_PUBLIC_CMS_BASE_URL!;
+const baseUrl = process.env.EXPO_PUBLIC_CMS_BASE_URL;
+if (!baseUrl) {
+  throw new Error("Missing EXPO_PUBLIC_CMS_BASE_URL environment variable. Set this to your CMS's base URL.");
+}
+
+if (process.env.NODE_ENV !== "production") {
+  // Log the CMS base URL in development for easier troubleshooting
+  // eslint-disable-next-line no-console
+  console.log(`CMS base URL: ${baseUrl}`);
+}
+
+export const CMS_BASE = baseUrl;
 async function getJSON(path:string, params?:Record<string,string|number|boolean>) {
   const url = new URL(path, CMS_BASE);
   if(params) Object.entries(params).forEach(([k,v])=> url.searchParams.set(k, String(v)));
