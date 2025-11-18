@@ -1,3 +1,5 @@
+⚠️ LEGACY: This folder is an older mobile app implementation used as a reference. The canonical mobile app contract is represented in the production mobile repo; focus on `server/` + `apps/studio/` for current behavior. See `../docs/ARCHITECTURE.md` for details.
+
 # Jars Mobile App
 
 ## Environment Setup

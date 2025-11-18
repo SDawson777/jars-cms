@@ -1,7 +1,7 @@
- import { defineConfig } from 'sanity'
- import dotenv from 'dotenv'
-import { deskTool } from 'sanity/desk'
-import { visionTool } from '@sanity/vision'
+import {defineConfig} from 'sanity'
+import dotenv from 'dotenv'
+import {deskTool} from 'sanity/desk'
+import {visionTool} from '@sanity/vision'
 import {schemaTypes} from './sanity/schema'
 
 export default defineConfig({
@@ -10,7 +10,7 @@ export default defineConfig({
 
   projectId: 'ygbu28p2',
   dataset: 'staging',
- 
+
   api: {
     token: process.env.SANITY_AUTH_TOKEN,
     useCdn: false,
@@ -22,4 +22,3 @@ export default defineConfig({
     types: schemaTypes,
   },
 })
-

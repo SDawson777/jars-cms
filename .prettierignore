@@ -1,0 +1,12 @@
+node_modules
+package-lock.json
+jars-cms/package-lock.json
+server/dist
+**/node_modules
+*.log
+.turbo
+.next
+dist
+build
+.venv
+.env

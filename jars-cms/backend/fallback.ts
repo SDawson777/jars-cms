@@ -3,9 +3,7 @@ export const FALLBACK_LEGAL = [
   {title: 'Privacy Policy', body: 'Placeholder privacy policy.'},
 ]
 
-export const FALLBACK_FAQ = [
-  {question: 'Placeholder question?', answer: 'Placeholder answer.'},
-]
+export const FALLBACK_FAQ = [{question: 'Placeholder question?', answer: 'Placeholder answer.'}]
 
 export const FALLBACK_ARTICLES: Array<{title: string; slug: string; excerpt: string}> = []
 

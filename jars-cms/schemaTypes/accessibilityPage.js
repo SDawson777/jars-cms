@@ -3,7 +3,7 @@ export default {
   title: 'Accessibility Page',
   type: 'document',
   fields: [
-    { name: 'title', type: 'string', title: 'Title' },
-    { name: 'body', type: 'array', of: [{ type: 'block' }] }
-  ]
+    {name: 'title', type: 'string', title: 'Title'},
+    {name: 'body', type: 'array', of: [{type: 'block'}]},
+  ],
 }

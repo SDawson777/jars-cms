@@ -1,3 +1,5 @@
+⚠️ LEGACY: This folder is an older/archived implementation and is not used by the current JARS CMS API or Studio. See `../docs/ARCHITECTURE.md` for the canonical locations and migration notes.
+
 # Sanity Clean Content Studio
 
 Congratulations, you have now installed the Sanity Content Studio, an open-source real-time content editing environment connected to the Sanity backend.

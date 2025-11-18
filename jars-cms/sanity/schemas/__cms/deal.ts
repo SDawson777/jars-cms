@@ -6,7 +6,12 @@ export default defineType({
   title: 'Deal',
   fields: [
     defineField({name: 'title', type: 'string', title: 'Title'}),
-    defineField({name: 'slug', type: 'slug', title: 'Slug', options: {source: 'title', maxLength: 96}}),
+    defineField({
+      name: 'slug',
+      type: 'slug',
+      title: 'Slug',
+      options: {source: 'title', maxLength: 96},
+    }),
     defineField({name: 'description', type: 'array', title: 'Description', of: [{type: 'block'}]}),
     defineField({name: 'startDate', type: 'datetime', title: 'Start Date'}),
     defineField({name: 'endDate', type: 'datetime', title: 'End Date'}),

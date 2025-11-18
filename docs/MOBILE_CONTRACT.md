@@ -1,186 +1,54 @@
-# Mobile ↔︎ CMS Contract (Phase 1–4)
+# Mobile API Contract (canonical + mobile usage)
 
-## Endpoints
+This document lists the canonical CMS API endpoints and the mobile app contract (the mobile app uses the `/content/*` paths where possible). The canonical documented contract (legacy) lives under `/api/v1/content/*` and the mobile app uses `/content/*` and `/api/admin/products`.
 
-- `GET /api/v1/content/legal`
-- `GET /api/v1/content/faqs`
-- `GET /api/v1/content/articles`
-- `GET /api/v1/content/articles/:slug`
-- `GET /api/v1/content/filters`
-- `GET /api/v1/content/deals`
-- `GET /api/v1/content/copy`
-- `GET /api/v1/status`
+## Summary of endpoints (mobile-first)
 
-Query parameters `preview` and `secret` are supported on content routes to render draft
-content. When `preview=true`, a matching `secret` must be supplied.
+- GET /content/legal
+  - Query params: `type` (one of `terms`, `privacy`, `accessibility`)
+  - Preview: `X-Preview: true` header OR `?preview=true`
+  - Response: { title: string; body: any }
 
-### GET /api/v1/content/legal
+- GET /content/fa_q (aliases: /content/faqs, /content/faq)
+  - Response: Array of FAQ items
+  - Shape: [{ id: string; question: string; answer: string }]
+  - Cache: public, max-age=86400
 
-**Query Parameters**
+- GET /content/articles
+  - Query params: `page` (number), `limit` (number), `tag` (string optional)
+  - Response: { items: CMSArticle[]; page: number; limit: number; total: number; totalPages: number }
+  - CMSArticle fields (high level): { id, title, slug, excerpt?, body?, cover?: { src, alt }, tags?, author?, publishedAt?, featured? }
 
-| Name      | Type                                      | Description                  |
-| --------- | ----------------------------------------- | ---------------------------- |
-| `type`    | `"terms" \| "privacy" \| "accessibility"` | Document type                |
-| `preview` | `boolean`                                 | Optional draft preview       |
-| `secret`  | `string`                                  | Required when `preview=true` |
+- GET /content/articles/:slug
+  - Response: CMSArticle (single object) or 404 { error: 'NOT_FOUND' }
 
-**Response**
+- GET /content/filters
+  - Response: ShopFilter[]
+  - Shape: [{ id: string; label: string }]
 
-```json
-{
-  "title": "string",
-  "version": "string",
-  "updatedAt": "ISODate",
-  "body": {}
-}
-```
+- GET /api/admin/products
+  - Response: CMSProduct[]
+  - Shape: [{ \_\_id: string; name: string; slug: string; price: number; type: string; effects?: string[]; image: { url: string; alt?: string } }]
 
-### GET /api/v1/content/faqs
+## Legacy canonical endpoints
 
-**Query Parameters**
+The same functionality is exposed at the legacy canonical endpoints used by docs and tests:
 
-| Name      | Type      | Description                  |
-| --------- | --------- | ---------------------------- |
-| `preview` | `boolean` | Optional draft preview       |
-| `secret`  | `string`  | Required when `preview=true` |
+- GET /api/v1/content/legal
+- GET /api/v1/content/faqs
+- GET /api/v1/content/articles
+- GET /api/v1/content/articles/:slug
+- GET /api/v1/content/filters
+- ... and others (copy, deals)
 
-**Response**
+Both the legacy and mobile endpoints are wired to the same route handlers to avoid duplication. Preview handling is a single source of truth: either `?preview=true` or the `X-Preview: true` header enables draft preview mode.
 
-```json
-[
-  {
-    "title": "string",
-    "slug": "string",
-    "items": [{"q": "string", "a": "string"}]
-  }
-]
-```
+## Errors and cache
 
-### GET /api/v1/content/articles
+- Errors: endpoints return JSON errors with appropriate HTTP status codes (4xx/5xx) — never raw HTML/text.
+- Cache headers: endpoints set Cache-Control values; generally public caching with reasonable TTLs (examples in code: legal and faqs use 86400 seconds, filters use 43200, articles use 300).
 
-**Query Parameters**
+## Notes for integrators
 
-| Name      | Type      | Description                         |
-| --------- | --------- | ----------------------------------- |
-| `page`    | `number`  | Page number (default 1)             |
-| `limit`   | `number`  | Items per page (default 20, max 50) |
-| `tag`     | `string`  | Optional tag filter                 |
-| `preview` | `boolean` | Optional draft preview              |
-| `secret`  | `string`  | Required when `preview=true`        |
-
-**Response**
-
-```json
-{
-  "items": [
-    {
-      "id": "string",
-      "title": "string",
-      "slug": "string",
-      "excerpt": "string",
-      "body": {},
-      "cover": {"src": "url", "alt": "string"},
-      "tags": ["string"],
-      "author": "string",
-      "publishedAt": "ISODate",
-      "featured": true
-    }
-  ],
-  "page": 1,
-  "limit": 20,
-  "total": 1,
-  "totalPages": 1
-}
-```
-
-### GET /api/v1/content/articles/:slug
-
-**Query Parameters**
-
-| Name      | Type      | Description                  |
-| --------- | --------- | ---------------------------- |
-| `preview` | `boolean` | Optional draft preview       |
-| `secret`  | `string`  | Required when `preview=true` |
-
-**Response**
-
-Same shape as a single item from `/content/articles`.
-
-### GET /api/v1/content/filters
-
-No parameters.
-
-**Response**
-
-```json
-{
-  "categories": [{"name": "string", "slug": "string", "iconRef": "string", "weight": 0}],
-  "filters": [
-    {
-      "name": "string",
-      "slug": "string",
-      "type": "string",
-      "options": [{"label": "string", "value": "string"}]
-    }
-  ]
-}
-```
-
-### GET /api/v1/content/deals
-
-**Query Parameters**
-
-| Name      | Type     | Description                          |
-| --------- | -------- | ------------------------------------ |
-| `storeId` | `string` | Optional store filter                |
-| `limit`   | `number` | Items to return (default 20, max 50) |
-
-**Response**
-
-```json
-[
-  {
-    "title": "string",
-    "slug": "string",
-    "badge": "string",
-    "ctaText": "string",
-    "ctaLink": "string",
-    "image": {"src": "url", "alt": "string"},
-    "priority": 0,
-    "startAt": "ISODate",
-    "endAt": "ISODate",
-    "stores": ["string"]
-  }
-]
-```
-
-### GET /api/v1/content/copy
-
-**Query Parameters**
-
-| Name      | Type                                                                                 | Description   |
-| --------- | ------------------------------------------------------------------------------------ | ------------- |
-| `context` | `"onboarding" \| "emptyStates" \| "awards" \| "accessibility" \| "dataTransparency"` | Copy grouping |
-
-**Response**
-
-```json
-[{"key": "string", "text": "string"}]
-```
-
-### GET /api/v1/status
-
-No parameters.
-
-**Response**
-
-```json
-{
-  "phases": {
-    "p1_mvp_core": true,
-    "p2_intelligence_scaffold": true,
-    "p3_ecosystem_cms": true,
-    "p4_vanguard_prefs": true
-  }
-}
-```
+- The mobile app reads CMS base URL from `EXPO_PUBLIC_CMS_API_URL` and calls the `/content/*` paths. Ensure your deployed API exposes those paths (the server mounts both `/api/v1/content` and `/content`).
+- For previewing draft content set `X-Preview: true` on requests.

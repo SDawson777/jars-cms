@@ -27,3 +27,15 @@
 
 # Dotenv and similar local-only files
 *.local
+
+# Local environment file (do NOT commit secrets)
+.env
+
+# Build output
+server/dist/
+core-api/dist/
+
+# Node modules and common caches
+node_modules/
+.turbo/
+.next/

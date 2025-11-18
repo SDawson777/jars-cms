@@ -2,12 +2,7 @@ import express from 'express'
 import fs from 'fs'
 import path from 'path'
 import {getClient} from '../sanityClient'
-import {
-  FALLBACK_FAQ,
-  FALLBACK_LEGAL,
-  FALLBACK_ARTICLES,
-  FALLBACK_FILTERS,
-} from '../fallback'
+import {FALLBACK_FAQ, FALLBACK_LEGAL, FALLBACK_ARTICLES, FALLBACK_FILTERS} from '../fallback'
 
 const queriesDir = path.resolve(__dirname, '../../queries')
 const faqQuery = fs.readFileSync(path.join(queriesDir, 'getFAQ.groq'), 'utf8')
@@ -66,10 +61,9 @@ router.get('/articles', async (req, res) => {
 router.get('/articles/:slug', async (req, res) => {
   try {
     const client = getClient(usePreview(req))
-    const article = await client.fetch(
-      '*[_type == "article" && slug.current == $slug][0]',
-      {slug: req.params.slug},
-    )
+    const article = await client.fetch('*[_type == "article" && slug.current == $slug][0]', {
+      slug: req.params.slug,
+    })
     setCaching(res)
     res.json(article)
   } catch {

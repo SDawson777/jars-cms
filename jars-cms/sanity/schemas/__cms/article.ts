@@ -9,14 +9,14 @@ export default defineType({
       name: 'title',
       type: 'string',
       title: 'Title',
-      validation: Rule => Rule.required(),
+      validation: (Rule) => Rule.required(),
     }),
     defineField({
       name: 'slug',
       type: 'slug',
       title: 'Slug',
       options: {source: 'title', maxLength: 96},
-      validation: Rule => Rule.required(),
+      validation: (Rule) => Rule.required(),
     }),
     defineField({
       name: 'excerpt',

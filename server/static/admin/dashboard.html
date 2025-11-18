@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Admin Dashboard — Jars CMS</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <style>
+      .dash {
+        max-width: 980px;
+        margin: 28px auto;
+        padding: 18px;
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 10px;
+      }
+      .dash a {
+        display: inline-block;
+        margin-right: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#dashboard">Skip to dashboard</a>
+    <div class="container">
+      <div class="site-top">
+        <div class="brand">
+          <img class="logo" src="/logo.png" alt="Jars CMS logo" />
+          <strong>Jars CMS</strong>
+        </div>
+        <div class="nav">
+          <a class="card" href="/">Home</a>
+          <a class="card" href="/admin/settings">Settings</a>
+          <a class="card" href="/admin/logout">Sign out</a>
+        </div>
+      </div>
+      <div id="dashboard" class="dash">
+        <h2>Admin Dashboard</h2>
+        <p>Welcome. Use the quick links below to inspect and manage content.</p>
+        <p>
+          <a class="card" href="/api/admin/products">Products (JSON)</a>
+          <a class="card" href="/content/fa_q">FAQs</a>
+          <a class="card" href="/content/articles">Articles</a>
+          <a class="card" href="/status">Status</a>
+        </p>
+      </div>
+    </div>
+    <div
+      class="a11y-widget"
+      aria-hidden="false"
+      style="position: fixed; right: 12px; bottom: 12px; z-index: 999"
+    >
+      <button id="a11y-contrast" title="Toggle high contrast" aria-pressed="false">Contrast</button>
+      <button id="a11y-large" title="Toggle large text" aria-pressed="false">Large text</button>
+      <button id="a11y-dyslexic" title="Toggle dyslexia-friendly font" aria-pressed="false">
+        Dyslexic
+      </button>
+    </div>
+    <script src="/a11y.js"></script>
+  </body>
+</html>

@@ -1,4 +1,4 @@
-import {describe,it,expect,beforeEach,vi} from 'vitest'
+import {describe, it, expect, beforeEach, vi} from 'vitest'
 import request from 'supertest'
 
 var fetchCMSMock: any
@@ -19,7 +19,8 @@ describe('GET /api/v1/content/legal', () => {
     fetchCMSMock.mockResolvedValueOnce(doc)
     const res = await request(app).get('/api/v1/content/legal').query({type: 'terms'})
     expect(res.status).toBe(200)
-    expect(res.body).toEqual(doc)
+    // server maps legal doc to {title, body}
+    expect(res.body).toEqual({title: doc.title, body: doc.body})
   })
 
   it('validates query params', async () => {
@@ -34,6 +35,7 @@ describe('GET /api/v1/content/faqs', () => {
     fetchCMSMock.mockResolvedValueOnce(faqs)
     const res = await request(app).get('/api/v1/content/faqs')
     expect(res.status).toBe(200)
+    // legacy endpoint should return groups shape
     expect(res.body).toEqual(faqs)
   })
 
@@ -57,14 +59,12 @@ describe('GET /api/v1/content/articles', () => {
         tags: [],
         author: 'auth',
         publishedAt: '2024',
-        featured: false
-      }
+        featured: false,
+      },
     ]
     fetchCMSMock.mockResolvedValueOnce(1)
     fetchCMSMock.mockResolvedValueOnce(items)
-    const res = await request(app)
-      .get('/api/v1/content/articles')
-      .query({page: 1, limit: 10})
+    const res = await request(app).get('/api/v1/content/articles').query({page: 1, limit: 10})
     expect(res.status).toBe(200)
     expect(res.body).toEqual({items, page: 1, limit: 10, total: 1, totalPages: 1})
   })
@@ -80,7 +80,7 @@ describe('GET /api/v1/content/articles', () => {
       tags: [],
       author: 'auth',
       publishedAt: '2024',
-      featured: false
+      featured: false,
     }
     fetchCMSMock.mockResolvedValueOnce(item)
     const res = await request(app).get('/api/v1/content/articles/a')
@@ -109,8 +109,8 @@ describe('GET /api/v1/content/filters', () => {
         name: 'f',
         slug: 'f',
         type: 'select',
-        options: [{label: 'L', value: 'v'}]
-      }
+        options: [{label: 'L', value: 'v'}],
+      },
     ]
     fetchCMSMock.mockResolvedValueOnce(categories)
     fetchCMSMock.mockResolvedValueOnce(filters)
@@ -123,6 +123,63 @@ describe('GET /api/v1/content/filters', () => {
     fetchCMSMock.mockRejectedValueOnce(new Error('fail'))
     const res = await request(app).get('/api/v1/content/filters')
     expect(res.status).toBe(500)
+  })
+})
+
+describe('Mobile and legacy endpoints consistency', () => {
+  it('legal: /content/legal matches /api/v1/content/legal', async () => {
+    const doc = {title: 'Terms', version: '1', updatedAt: '2024', body: []}
+    fetchCMSMock.mockResolvedValueOnce(doc)
+    const resLegacy = await request(app).get('/api/v1/content/legal').query({type: 'terms'})
+    expect(resLegacy.status).toBe(200)
+    expect(resLegacy.body).toEqual({title: doc.title, body: doc.body})
+
+    fetchCMSMock.mockResolvedValueOnce(doc)
+    const resMobile = await request(app).get('/content/legal').query({type: 'terms'})
+    expect(resMobile.status).toBe(200)
+    expect(resMobile.body).toEqual({title: doc.title, body: doc.body})
+  })
+
+  it('faqs: /content/fa_q matches /api/v1/content/faqs', async () => {
+    const faqs = [{title: 'g', slug: 'g', items: [{q: 'qq', a: 'aa'}]}]
+    fetchCMSMock.mockResolvedValueOnce(faqs)
+    const resLegacy = await request(app).get('/api/v1/content/faqs')
+    expect(resLegacy.status).toBe(200)
+    // legacy returns groups shape
+    expect(resLegacy.body).toEqual(faqs)
+
+    fetchCMSMock.mockResolvedValueOnce(faqs)
+    const resMobile = await request(app).get('/content/fa_q')
+    expect(resMobile.status).toBe(200)
+    expect(resMobile.body).toEqual([{id: 'g-0', question: 'qq', answer: 'aa'}])
+  })
+
+  it('articles: /content/articles and /api/v1/content/articles consistent', async () => {
+    const items = [
+      {
+        id: '1',
+        title: 'A',
+        slug: 'a',
+        excerpt: 'ex',
+        body: [],
+        cover: {src: '', alt: ''},
+        tags: [],
+        author: 'auth',
+        publishedAt: '2024',
+        featured: false,
+      },
+    ]
+    fetchCMSMock.mockResolvedValueOnce(1)
+    fetchCMSMock.mockResolvedValueOnce(items)
+    const resLegacy = await request(app).get('/api/v1/content/articles').query({page: 1, limit: 10})
+    expect(resLegacy.status).toBe(200)
+    expect(resLegacy.body).toEqual({items, page: 1, limit: 10, total: 1, totalPages: 1})
+
+    fetchCMSMock.mockResolvedValueOnce(1)
+    fetchCMSMock.mockResolvedValueOnce(items)
+    const resMobile = await request(app).get('/content/articles').query({page: 1, limit: 10})
+    expect(resMobile.status).toBe(200)
+    expect(resMobile.body).toEqual({items, page: 1, limit: 10, total: 1, totalPages: 1})
   })
 })
 
@@ -139,8 +196,8 @@ describe('GET /api/v1/content/deals', () => {
         priority: 1,
         startAt: '2023',
         endAt: '2024',
-        stores: ['s1']
-      }
+        stores: ['s1'],
+      },
     ]
     fetchCMSMock.mockResolvedValueOnce(items)
     const res = await request(app).get('/api/v1/content/deals').query({limit: 1})
@@ -158,9 +215,7 @@ describe('GET /api/v1/content/copy', () => {
   it('returns app copy', async () => {
     const items = [{key: 'hello', text: 'world'}]
     fetchCMSMock.mockResolvedValueOnce(items)
-    const res = await request(app)
-      .get('/api/v1/content/copy')
-      .query({context: 'onboarding'})
+    const res = await request(app).get('/api/v1/content/copy').query({context: 'onboarding'})
     expect(res.status).toBe(200)
     expect(res.body).toEqual(items)
   })
