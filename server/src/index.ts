@@ -2,6 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import path from 'path'
 import cookieParser from 'cookie-parser'
+import helmet from 'helmet'
 import adminAuthRouter from './routes/adminAuth'
 import {requireAdmin} from './middleware/adminAuth'
 
@@ -10,12 +11,31 @@ import {statusRouter} from './routes/status'
 import {adminRouter} from './routes/admin'
 
 const app = express()
-// Ensure JSON + CORS defaults
-app.use(cors())
+// Security middlewares
+app.use(helmet())
+// Ensure JSON + URL-encoded parsers and CORS defaults
 app.use(express.json())
+app.use(express.urlencoded({extended: true}))
+
+// Configure CORS: if CORS_ORIGINS env is set (comma-separated), restrict origins
+const allowedOrigins = process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['http://localhost:3000', 'http://localhost:5173']
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (curl, server-to-server)
+      if (!origin) return callback(null, true)
+      if (allowedOrigins.indexOf(origin) !== -1) return callback(null, true)
+      return callback(new Error('CORS origin denied'))
+    },
+  }),
+)
 
 // Parse cookies (used by admin auth)
 app.use(cookieParser())
+// Serve a small static landing page for human visitors / buyers
+const staticDir = path.join(__dirname, '..', 'static')
+app.use(express.static(staticDir))
+app.get('/', (_req, res) => res.sendFile(path.join(staticDir, 'index.html')))
 
 // Admin auth routes (login/logout)
 app.use('/admin', adminAuthRouter)
@@ -27,11 +47,6 @@ app.get('/admin/dashboard', requireAdmin, (_req, res) =>
 app.get('/admin/settings', requireAdmin, (_req, res) =>
   res.sendFile(path.join(staticDir, 'admin', 'settings.html')),
 )
-
-// Serve a small static landing page for human visitors / buyers
-const staticDir = path.join(__dirname, '..', 'static')
-app.use(express.static(staticDir))
-app.get('/', (_req, res) => res.sendFile(path.join(staticDir, 'index.html')))
 
 // content routes (existing + new)
 // Mount content routes for legacy API consumers

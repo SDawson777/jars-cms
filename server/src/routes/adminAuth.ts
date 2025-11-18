@@ -2,6 +2,7 @@ import {Router} from 'express'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import cookieParser from 'cookie-parser'
+import rateLimit from 'express-rate-limit'
 import {loadAdmins, findAdmin} from '../lib/admins'
 
 const router = Router()
@@ -9,9 +10,18 @@ const COOKIE_NAME = 'admin_token'
 
 router.use(cookieParser())
 
+// Basic rate limiter for admin login to mitigate brute-force in-memory.
+// For production, replace with Redis-backed store (connect-redis) and per-IP/user throttling.
+const loginLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 8, // limit each IP to 8 login requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+})
+
 // POST /admin/login
 // body: {brand?: string, dispensary?: string, email, password}
-router.post('/login', async (req: any, res) => {
+router.post('/login', loginLimiter, async (req: any, res) => {
   const {brand, dispensary, email, password} = req.body || {}
   const jwtSecret = process.env.JWT_SECRET || 'dev-secret'
 
