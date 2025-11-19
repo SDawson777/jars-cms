@@ -16,10 +16,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Use Node.js 18
+      - name: Use Node.js 20
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Cache node modules
         uses: actions/cache@v4
@@ -52,9 +52,8 @@ jobs:
           # serve the static admin build and run pa11y checks against the homepage
           npx http-server ./apps/admin/dist -p 8080 >/dev/null 2>&1 &
           sleep 2
-          # Use a Node script to run pa11y programmatically so we can pass
-          # Chromium flags reliably across pa11y versions and CI environments
-          node scripts/run-pa11y.js http://localhost:8080
+          # Use pa11y CLI with the correct flag name for passing chrome args in CI
+          npx pa11y http://localhost:8080 --chrome-launcher-args="--no-sandbox,--disable-setuid-sandbox"
 
       - name: Package build artifacts (optional)
         if: ${{ always() }}
