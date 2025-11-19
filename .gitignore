@@ -1,3 +1,11 @@
+# Ignore build artifacts
+apps/admin/dist/
+**/dist/
+node_modules/
+server/dist/
+coverage/
+.parcel-cache
+.next
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # Dependencies
