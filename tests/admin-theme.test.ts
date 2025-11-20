@@ -1,6 +1,7 @@
 import {describe, it, expect, beforeEach, vi} from 'vitest'
 import jwt from 'jsonwebtoken'
 import request from 'supertest'
+import {withAdminCookies} from './helpers'
 
 const createOrReplaceMock = vi.fn()
 const fetchMock = vi.fn()
@@ -11,6 +12,10 @@ vi.mock('../server/src/lib/cms', () => ({
 }))
 
 import app from '../server/src'
+
+function appRequest() {
+  return request(app) as any
+}
 
 beforeEach(() => {
   fetchMock.mockReset()
@@ -33,10 +38,11 @@ describe('POST /api/admin/theme', () => {
       {id: 'u1', email: 'a@b.com', role: 'EDITOR'},
       process.env.JWT_SECRET || 'dev-secret',
     )
-    const res = await request(app)
-      .post('/api/admin/theme')
-      .set('Cookie', `admin_token=${token}`)
-      .send({brand: 'jars', primaryColor: '#ffffff'})
+    const authed = withAdminCookies(appRequest(), token)
+    const res = await authed.post('/api/admin/theme').send({
+      brand: 'jars',
+      primaryColor: '#ffffff',
+    })
 
     expect(res.status).toBe(200)
     expect(res.body).toHaveProperty('ok', true)
@@ -57,10 +63,12 @@ describe('POST /api/admin/theme', () => {
       {id: 'u1', email: 'a@b.com', role: 'EDITOR'},
       process.env.JWT_SECRET || 'dev-secret',
     )
-    const res = await request(app)
-      .post('/api/admin/theme')
-      .set('Cookie', `admin_token=${token}`)
-      .send({brand: 'jars', logoAssetId: assetId, logoAlt: 'Company logo'})
+    const authed = withAdminCookies(appRequest(), token)
+    const res = await authed.post('/api/admin/theme').send({
+      brand: 'jars',
+      logoAssetId: assetId,
+      logoAlt: 'Company logo',
+    })
 
     expect(res.status).toBe(200)
     const docArg = createOrReplaceMock.mock.calls[0][0]
@@ -83,10 +91,12 @@ describe('POST /api/admin/theme', () => {
       {id: 'u1', email: 'a@b.com', role: 'EDITOR'},
       process.env.JWT_SECRET || 'dev-secret',
     )
-    const res = await request(app)
-      .post('/api/admin/theme')
-      .set('Cookie', `admin_token=${token}`)
-      .send({brand: 'jars', store: 'downtown', primaryColor: '#abcdef'})
+    const authed = withAdminCookies(appRequest(), token)
+    const res = await authed.post('/api/admin/theme').send({
+      brand: 'jars',
+      store: 'downtown',
+      primaryColor: '#abcdef',
+    })
 
     expect(res.status).toBe(200)
     expect(res.body).toHaveProperty('ok', true)

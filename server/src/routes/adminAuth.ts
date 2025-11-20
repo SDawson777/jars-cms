@@ -3,11 +3,13 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import cookieParser from 'cookie-parser'
 import rateLimit from 'express-rate-limit'
+import crypto from 'crypto'
 import {loadAdmins, findAdmin, getEnvAdmin, AdminUser} from '../lib/admins'
 import {requireAdmin} from '../middleware/adminAuth'
 
 const router = Router()
 const COOKIE_NAME = 'admin_token'
+const CSRF_COOKIE = 'admin_csrf'
 
 router.use(cookieParser())
 
@@ -24,7 +26,11 @@ const loginLimiter = rateLimit({
 // body: {brand?: string, dispensary?: string, email, password}
 router.post('/login', loginLimiter, async (req: any, res) => {
   const {brand, dispensary, email, password} = req.body || {}
-  const jwtSecret = process.env.JWT_SECRET || 'dev-secret'
+  const jwtSecret = process.env.JWT_SECRET
+  if (!jwtSecret) {
+    return res.status(500).json({error: 'SERVER_MISCONFIGURED'})
+  }
+  const csrfToken = crypto.randomBytes(32).toString('hex')
 
   if (!email || !password) return res.status(400).json({error: 'MISSING_CREDENTIALS'})
 
@@ -57,7 +63,14 @@ router.post('/login', loginLimiter, async (req: any, res) => {
       maxAge: 4 * 60 * 60 * 1000,
       path: '/',
     })
-    return res.json({ok: true})
+    res.cookie(CSRF_COOKIE, csrfToken, {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 4 * 60 * 60 * 1000,
+      path: '/',
+    })
+    return res.json({ok: true, csrfToken})
   }
 
   // fallback to env-based single-admin mode
@@ -87,7 +100,14 @@ router.post('/login', loginLimiter, async (req: any, res) => {
     maxAge: 4 * 60 * 60 * 1000,
     path: '/',
   })
-  res.json({ok: true})
+  res.cookie(CSRF_COOKIE, csrfToken, {
+    httpOnly: false,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 4 * 60 * 60 * 1000,
+    path: '/',
+  })
+  res.json({ok: true, csrfToken})
 })
 
 // Return the current admin (from signed cookie)
@@ -101,6 +121,7 @@ router.get('/me', requireAdmin, (req: any, res) => {
 // GET /admin/logout
 router.get('/logout', (_req, res) => {
   res.clearCookie(COOKIE_NAME)
+  res.clearCookie(CSRF_COOKIE)
   // Prefer a redirect when called from a browser link; keep JSON for XHR callers
   if (_req.headers.accept && _req.headers.accept.indexOf('text/html') !== -1) {
     return res.redirect('/admin')

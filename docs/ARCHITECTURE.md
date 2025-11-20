@@ -27,11 +27,11 @@ The codebase supports optional multi-tenant scoping at the org/brand/store level
 - Themes are stored as `themeConfig` documents in Sanity and include colors, typography, and `logo` (image reference). The server persists canonical Sanity asset references (asset id) and `logo.alt` for accessibility.
 - Themes are stored as `themeConfig` documents in Sanity and include colors, typography, and `logo` (image reference). Each `themeConfig` can be brand-level or a store-level override. The server persists canonical Sanity asset references (asset id) and `logo.alt` for accessibility.
 - The theme engine resolves configuration using the precedence: store-level override -> brand-level theme -> global default (no brand/store). The `/content/theme` endpoint returns a flattened contract designed for multi-frontend consumption (mobile, web, kiosks).
-- The Admin SPA uploads logos using a multipart-first strategy with a JSON dataURL fallback so environments without `multer` still work.
+- The Admin SPA uploads logos using a multipart-first strategy with a JSON dataURL fallback so environments without `multer` still work. Uploads are validated server- and client-side for file type (PNG/JPG/SVG/WebP) and size (`MAX_LOGO_BYTES`, defaults to 2 MB) to enforce branding policies.
 
 ## Live Retail Intelligence Dashboard
 
-- The Admin Dashboard aggregates content metrics, per-store engagement, top content, and product demand signals. It's powered by the analytics subsystem and can be extended to show custom KPIs.
+- The Admin Dashboard aggregates content metrics, per-store engagement, top content, and product demand signals. It's powered by the analytics subsystem and now hydrates directly from `/api/admin/analytics/overview`, showing cache status and day-over-day deltas for top-demand products out of the box.
 
 ## Compliance automation
 
@@ -52,11 +52,21 @@ The codebase supports optional multi-tenant scoping at the org/brand/store level
 
 ## Admin SPA and RBAC
 
-- The Admin SPA talks to protected `/api/admin/*` endpoints guarded by a JWT cookie (`admin_token`) and role-based middleware (`requireRole`). The server uses a `createWriteClient()` helper to centralize write client creation for Sanity.
+- The Admin SPA talks to protected `/api/admin/*` endpoints guarded by a JWT cookie (`admin_token`) and role-based middleware (`requireRole`). Requests also require a CSRF token (`admin_csrf` cookie + `X-CSRF-Token` header) issued by the API, aligning SPA fetches and Vitest suites with the same middleware.
 
 ## Analytics & content metrics
 
-- The server collects lightweight content metrics and exposes endpoints to record and query analytics counters for articles and content. The analytics subsystem is intentionally decoupled so it can be swapped for a third-party provider.
+- `/analytics/event` ingestion requires an `X-Analytics-Key` from `ANALYTICS_INGEST_KEY` and an `X-Analytics-Signature` header (HMAC-SHA256 of the raw JSON body). Requests pass through a shared-key limiter and an IP fallback limiter before Sanity writes.
+- Aggregated overview responses are cached in-memory and persisted in Sanity (`analyticsOverviewCache` docs) so multi-instance deployments stay in sync and can report cache hits to the dashboard via `X-Analytics-Overview-Cache`.
+- The analytics subsystem remains decoupled and can be swapped for an external provider by replacing `server/src/routes/analytics.ts`.
+
+## Observability & logging
+
+- The Express server emits structured JSON logs via `server/src/lib/logger.ts`. Every log entry includes a timestamp, level, process metadata, and any structured fields you pass.
+- A request-scoped middleware (`requestLogger`) assigns a `requestId` (honoring inbound `X-Request-Id`/`X-Correlation-Id` headers when supplied) and attaches `req.log`, a child logger enriched with `requestId`, `method`, and `path` for the lifetime of the request.
+- Request lifecycle events (`request.start`, `request.complete`, `request.aborted`) automatically record duration, status code, and response size so dashboards can ingest latency/error metrics without additional agents.
+- All route handlers and background jobs should call `req.log`/`logger` instead of `console.*`; this keeps stack traces and metadata structured for observability platforms.
+- Enable verbose debug logs by setting `LOG_LEVEL=debug` (defaults to info/warn/error only).
 
 ## Legal/versioning
 
@@ -92,8 +102,12 @@ The codebase supports optional multi-tenant scoping at the org/brand/store level
 Key env vars (see `.env.example`):
 
 - `SANITY_PROJECT_ID`, `SANITY_DATASET`
-- `SANITY_API_TOKEN`, `SANITY_PREVIEW_TOKEN`
+- `SANITY_API_TOKEN`, `SANITY_PREVIEW_TOKEN`, `PREVIEW_SECRET`
 - `JWT_SECRET` (admin token signing)
+- `ANALYTICS_INGEST_KEY` (comma-separated shared keys for analytics clients)
+- `MAX_LOGO_BYTES`, `JSON_BODY_LIMIT` (govern logo upload size / JSON payload parsing)
+- `COMPLIANCE_SNAPSHOT_ENABLED` (turns on the scheduled compliance snapshot job)
+- `LOG_LEVEL` (optional; set to `debug` to emit debug-level logs)
 
 ## Handoff and governance notes
 

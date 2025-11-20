@@ -3,8 +3,54 @@ import rateLimit from 'express-rate-limit'
 import {logger} from '../lib/logger'
 import {z} from 'zod'
 import {createClient} from '@sanity/client'
+import crypto from 'crypto'
 
 export const analyticsRouter = Router()
+
+const ingestKeys = (process.env.ANALYTICS_INGEST_KEY || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean)
+const ingestKeySet = new Set(ingestKeys)
+
+const fallbackWindowMs = Number(process.env.ANALYTICS_FALLBACK_RATE_WINDOW_MS || 60 * 1000)
+const fallbackMax = Number(process.env.ANALYTICS_FALLBACK_RATE_MAX || 120)
+const fallbackBuckets: Map<string, {count: number; reset: number}> = new Map()
+
+function allowAnalyticsRequest(key: string, req: any) {
+  const ip = req.ip || req.headers['x-forwarded-for'] || req.connection?.remoteAddress || 'unknown'
+  const bucketKey = `${key}:${ip}`
+  const now = Date.now()
+  const bucket = fallbackBuckets.get(bucketKey)
+  if (!bucket || now > bucket.reset) {
+    fallbackBuckets.set(bucketKey, {count: 1, reset: now + fallbackWindowMs})
+    return true
+  }
+  if (bucket.count >= fallbackMax) return false
+  bucket.count += 1
+  return true
+}
+
+analyticsRouter.use((req, res, next) => {
+  if (!ingestKeySet.size) {
+    logger.error('ANALYTICS_INGEST_KEY not configured')
+    return res.status(503).json({error: 'ANALYTICS_INGEST_KEY_NOT_CONFIGURED'})
+  }
+  const providedKey = String(req.header('X-Analytics-Key') || '')
+  if (!providedKey || !ingestKeySet.has(providedKey)) {
+    return res.status(401).json({error: 'INVALID_ANALYTICS_KEY'})
+  }
+  const signature = String(req.header('X-Analytics-Signature') || '')
+  const rawBody: Buffer = (req as any).rawBody || Buffer.from(JSON.stringify(req.body || {}))
+  const expectedSignature = crypto.createHmac('sha256', providedKey).update(rawBody).digest('hex')
+  if (signature !== expectedSignature) {
+    return res.status(401).json({error: 'INVALID_ANALYTICS_SIGNATURE'})
+  }
+  if (!allowAnalyticsRequest(providedKey, req)) {
+    return res.status(429).json({error: 'RATE_LIMITED'})
+  }
+  return next()
+})
 
 // Configurable rate limiter for analytics events (protects the Sanity write endpoint)
 const analyticsLimiter = rateLimit({

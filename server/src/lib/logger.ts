@@ -1,6 +1,7 @@
 // Minimal structured logger used by the server.
 // Keeps the API small and avoids adding a dependency while emitting JSON for easy ingestion.
 type LogLevel = 'info' | 'warn' | 'error' | 'debug'
+type LogContext = Record<string, unknown>
 
 function formatArgs(args: any[]) {
   return args
@@ -20,12 +21,13 @@ function formatArgs(args: any[]) {
     .map((a) => (typeof a === 'object' ? a : {msg: a}))
 }
 
-function write(level: LogLevel, ...args: any[]) {
+function write(level: LogLevel, baseContext: LogContext, args: any[]) {
   const payload: any = {
     ts: new Date().toISOString(),
     level,
     pid: process.pid,
     env: process.env.NODE_ENV || 'development',
+    ...baseContext,
     msg: undefined,
   }
   const formatted = formatArgs(args)
@@ -47,13 +49,27 @@ function write(level: LogLevel, ...args: any[]) {
   }
 }
 
-export const logger = {
-  info: (...args: any[]) => write('info', ...args),
-  warn: (...args: any[]) => write('warn', ...args),
-  error: (...args: any[]) => write('error', ...args),
-  debug: (...args: any[]) => {
-    if (process.env.LOG_LEVEL === 'debug') write('debug', ...args)
-  },
+export type Logger = {
+  info: (...args: any[]) => void
+  warn: (...args: any[]) => void
+  error: (...args: any[]) => void
+  debug: (...args: any[]) => void
+  withContext: (context: LogContext) => Logger
 }
+
+function createLogger(baseContext: LogContext = {}): Logger {
+  const emitter = (level: LogLevel, args: any[]) => write(level, baseContext, args)
+  return {
+    info: (...args: any[]) => emitter('info', args),
+    warn: (...args: any[]) => emitter('warn', args),
+    error: (...args: any[]) => emitter('error', args),
+    debug: (...args: any[]) => {
+      if (process.env.LOG_LEVEL === 'debug') emitter('debug', args)
+    },
+    withContext: (context: LogContext) => createLogger({...baseContext, ...context}),
+  }
+}
+
+export const logger = createLogger()
 
 export default logger

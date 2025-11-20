@@ -2,6 +2,7 @@
 // Prefer a full-featured renderer if the optional dependency
 // `@portabletext/to-html` is installed. Otherwise fall back to
 // a lightweight, permissive serializer implemented below.
+import {logger} from './logger'
 
 let thirdPartyRenderer: ((blocks: any) => string) | null = null
 try {
@@ -32,7 +33,7 @@ export function portableTextToHtml(blocks: any): string {
     } catch (err) {
       // if the third-party renderer throws for some inputs, fall back
       // to the lightweight serializer below.
-      console.warn('portableText: third-party renderer failed, falling back', err)
+      logger.warn('portableText.third_party_failed', err)
     }
   }
 

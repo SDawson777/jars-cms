@@ -1,1 +1,1 @@
-export {schemaTypes} from './schemas'
+export {default as schemaTypes} from '../../apps/studio/schemaTypes'

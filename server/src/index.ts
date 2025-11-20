@@ -6,6 +6,8 @@ import helmet from 'helmet'
 import {logger} from './lib/logger'
 import adminAuthRouter from './routes/adminAuth'
 import {requireAdmin} from './middleware/adminAuth'
+import {requireCsrfToken, ensureCsrfCookie} from './middleware/requireCsrfToken'
+import {requestLogger} from './middleware/requestLogger'
 
 import {contentRouter} from './routes/content'
 import {personalizationRouter} from './routes/personalization'
@@ -14,12 +16,33 @@ import {adminRouter} from './routes/admin'
 import analyticsRouter from './routes/analytics'
 import {startComplianceScheduler} from './jobs/complianceSnapshotJob'
 
+const requiredSecrets = ['JWT_SECRET', 'PREVIEW_SECRET'] as const
+const missingSecrets = requiredSecrets.filter((key) => !process.env[key])
+if (missingSecrets.length) {
+  throw new Error(
+    `Missing required environment variable${missingSecrets.length > 1 ? 's' : ''}: ${missingSecrets.join(
+      ', ',
+    )}`,
+  )
+}
+
 const app = express()
 // Security middlewares
 app.use(helmet())
-// Ensure JSON + URL-encoded parsers and CORS defaults
-app.use(express.json())
+// Ensure JSON + URL-encoded parsers and capture raw bodies for HMAC validation
+const jsonBodyLimit = process.env.JSON_BODY_LIMIT || '4mb'
+app.use(
+  express.json({
+    limit: jsonBodyLimit,
+    verify: (req: any, _res, buf) => {
+      if (buf && buf.length) {
+        req.rawBody = Buffer.from(buf)
+      }
+    },
+  }),
+)
 app.use(express.urlencoded({extended: true}))
+app.use(requestLogger)
 
 // Configure CORS: if CORS_ORIGINS env is set (comma-separated), restrict origins.
 // Credentials (cookies) are only allowed when the origin is a specific allowlisted origin.
@@ -82,14 +105,14 @@ app.use('/analytics', analyticsRouter)
 app.use('/api/v1/status', statusRouter)
 app.use('/status', statusRouter)
 // admin routes (products used by mobile) - protect all API admin routes with requireAdmin
-app.use('/api/admin', requireAdmin, adminRouter)
+app.use('/api/admin', requireAdmin, ensureCsrfCookie, requireCsrfToken, adminRouter)
 
 // Start compliance snapshot scheduler only when explicitly enabled (avoid running during tests)
 if (process.env.COMPLIANCE_SNAPSHOT_ENABLED === 'true') {
   try {
     startComplianceScheduler()
   } catch (e) {
-    console.error('failed to start compliance scheduler', e)
+    logger.error('failed to start compliance scheduler', e)
   }
 }
 

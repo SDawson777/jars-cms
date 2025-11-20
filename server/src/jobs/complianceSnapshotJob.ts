@@ -1,5 +1,6 @@
 import {createWriteClient, fetchCMS} from '../lib/cms'
 import {computeCompliance} from '../lib/compliance'
+import {logger} from '../lib/logger'
 
 export async function runComplianceSnapshotOnce() {
   // Fetch organizations and brands to snapshot per-org/brand plus a global snapshot
@@ -121,9 +122,11 @@ export async function runComplianceSnapshotOnce() {
 export function startComplianceScheduler(intervalMs?: number) {
   const ms = intervalMs || Number(process.env.COMPLIANCE_SNAPSHOT_INTERVAL_MS || 1000 * 60 * 60)
   // fire and schedule
-  runComplianceSnapshotOnce().catch((e) => console.error('initial compliance snapshot failed', e))
+  runComplianceSnapshotOnce().catch((e) =>
+    logger.error('compliance.snapshot.initial_failed', e),
+  )
   const id = setInterval(
-    () => runComplianceSnapshotOnce().catch((e) => console.error('compliance snapshot failed', e)),
+    () => runComplianceSnapshotOnce().catch((e) => logger.error('compliance.snapshot.failed', e)),
     ms,
   )
   return () => clearInterval(id)

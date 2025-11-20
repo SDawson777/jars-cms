@@ -1,5 +1,6 @@
 import {describe, it, expect, beforeEach, vi} from 'vitest'
 import request from 'supertest'
+import {withAdminCookies} from './helpers'
 
 var fetchCMSMock: any
 var createWriteClientMock: any
@@ -12,6 +13,10 @@ vi.mock('../server/src/lib/cms', () => {
 })
 
 import app from '../server/src'
+
+function appRequest() {
+  return request(app) as any
+}
 
 beforeEach(() => {
   fetchCMSMock.mockReset()
@@ -41,7 +46,7 @@ describe('product recall admin', () => {
       {id: 't', email: 'a@b', role: 'EDITOR'},
       process.env.JWT_SECRET || 'dev-secret',
     )
-    const res = await request(app).get('/api/admin/products').set('Cookie', `admin_token=${token}`)
+  const res = await appRequest().get('/api/admin/products').set('Cookie', `admin_token=${token}`)
     expect(res.status).toBe(200)
     expect(res.body.some((p: any) => p.isRecalled)).toBe(false)
   })
@@ -57,7 +62,7 @@ describe('product recall admin', () => {
       {id: 't', email: 'a@b', role: 'EDITOR'},
       process.env.JWT_SECRET || 'dev-secret',
     )
-    const res = await request(app)
+    const res = await appRequest()
       .get('/api/admin/products')
       .query({includeRecalled: 'true'})
       .set('Cookie', `admin_token=${token}`)
@@ -72,10 +77,8 @@ describe('product recall admin', () => {
       {id: 't', email: 'a@b', role: 'EDITOR'},
       process.env.JWT_SECRET || 'dev-secret',
     )
-    const res = await request(app)
-      .post('/api/admin/products/p2/recall')
-      .set('Cookie', `admin_token=${token}`)
-      .send({isRecalled: false})
+    const authed = withAdminCookies(appRequest(), token)
+    const res = await authed.post('/api/admin/products/p2/recall').send({isRecalled: false})
     expect(res.status).toBe(200)
     expect(res.body).toEqual({ok: true})
   })

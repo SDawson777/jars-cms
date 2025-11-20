@@ -1,6 +1,7 @@
 import {describe, it, expect, beforeEach, vi} from 'vitest'
 import request from 'supertest'
 import jwt from 'jsonwebtoken'
+import {withAdminCookies} from './helpers'
 
 var fetchCMSMock: any
 const createMockClient = () => ({
@@ -15,6 +16,10 @@ vi.mock('../server/src/lib/cms', () => {
 
 import app from '../server/src'
 
+function appRequest() {
+  return request(app) as any
+}
+
 beforeEach(() => {
   fetchCMSMock.mockReset()
   process.env.JWT_SECRET = 'dev-secret'
@@ -28,9 +33,8 @@ describe('POST /api/admin/compliance/snapshot RBAC and history', () => {
       {id: 'u1', email: 'orgadmin@example.com', role: 'ORG_ADMIN', organizationSlug: 'org1'},
       process.env.JWT_SECRET,
     )
-    const res = await request(app)
-      .post('/api/admin/compliance/snapshot')
-      .set('Cookie', `admin_token=${token}`)
+    const authed = withAdminCookies(appRequest(), token)
+    const res = await authed.post('/api/admin/compliance/snapshot')
     expect(res.status).toBe(200)
     expect(res.body).toHaveProperty('ok', true)
     expect(res.body).toHaveProperty('id')
@@ -44,10 +48,8 @@ describe('POST /api/admin/compliance/snapshot RBAC and history', () => {
       {id: 'b1', email: 'brandadmin@example.com', role: 'BRAND_ADMIN', brandSlug: 'brandA'},
       process.env.JWT_SECRET,
     )
-    const res = await request(app)
-      .post('/api/admin/compliance/snapshot')
-      .send({brand: 'brandB'})
-      .set('Cookie', `admin_token=${token}`)
+    const authed = withAdminCookies(appRequest(), token)
+    const res = await authed.post('/api/admin/compliance/snapshot').send({brand: 'brandB'})
     expect(res.status).toBe(403)
   })
 
@@ -57,10 +59,10 @@ describe('POST /api/admin/compliance/snapshot RBAC and history', () => {
       {id: 'o1', email: 'owner@example.com', role: 'OWNER'},
       process.env.JWT_SECRET,
     )
-    const res = await request(app)
+    const authed = withAdminCookies(appRequest(), token)
+    const res = await authed
       .post('/api/admin/compliance/snapshot')
       .send({org: 'orgX', brand: 'brandX'})
-      .set('Cookie', `admin_token=${token}`)
     expect(res.status).toBe(200)
     expect(res.body).toHaveProperty('ok', true)
     expect(String(res.body.id)).toContain('orgX')
@@ -90,7 +92,7 @@ describe('POST /api/admin/compliance/snapshot RBAC and history', () => {
       {id: 'u1', email: 'orgadmin@example.com', role: 'ORG_ADMIN', organizationSlug: 'org1'},
       process.env.JWT_SECRET,
     )
-    const res = await request(app)
+    const res = await appRequest()
       .get('/api/admin/compliance/history')
       .set('Cookie', `admin_token=${token}`)
     expect(res.status).toBe(200)

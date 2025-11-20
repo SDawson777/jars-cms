@@ -1,4 +1,15 @@
 import React, {useEffect, useState, useRef} from 'react'
+import {csrfFetch} from '../lib/csrf'
+
+const MAX_LOGO_BYTES = 2 * 1024 * 1024
+const ALLOWED_LOGO_TYPES = ['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp']
+const ALLOWED_LOGO_EXTENSIONS = ['png', 'jpg', 'jpeg', 'svg', 'webp']
+
+function formatBytes(count) {
+  if (count >= 1024 * 1024) return `${Math.round(count / (1024 * 1024))}MB`
+  if (count >= 1024) return `${Math.round(count / 1024)}KB`
+  return `${count}B`
+}
 
 export default function ThemePage() {
   const [theme, setTheme] = useState(null)
@@ -115,9 +126,8 @@ export default function ThemePage() {
     try {
       const payload = {...form}
       if (!payload.brand) payload.brand = brand
-      const res = await fetch('/api/admin/theme/config', {
+      const res = await csrfFetch('/api/admin/theme/config', {
         method: 'POST',
-        credentials: 'include',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(payload),
       })
@@ -238,9 +248,8 @@ export default function ThemePage() {
     if (!id) return
     if (!confirm('Delete this theme config?')) return
     try {
-      const res = await fetch(`/api/admin/theme/config/${encodeURIComponent(id)}`, {
+      const res = await csrfFetch(`/api/admin/theme/config/${encodeURIComponent(id)}`, {
         method: 'DELETE',
-        credentials: 'include',
       })
       if (res.ok) {
         await loadConfigs({page: configsPage.page, perPage: configsPage.perPage})
@@ -250,6 +259,40 @@ export default function ThemePage() {
     } catch (e) {
       console.error(e)
     }
+  }
+
+  function validateLogoFile(file) {
+    if (!file) return ['No file selected']
+    const ext = (file.name || '').toLowerCase().split('.').pop()
+    const hasAllowedExt = ext ? ALLOWED_LOGO_EXTENSIONS.includes(ext) : false
+    const hasAllowedMime = file.type ? ALLOWED_LOGO_TYPES.includes(file.type) : false
+    const errorsList = []
+    if (!hasAllowedExt && !hasAllowedMime)
+      errorsList.push('Logo must be PNG, JPG, SVG, or WebP.')
+    if (file.size > MAX_LOGO_BYTES)
+      errorsList.push(`Logo must be ${formatBytes(MAX_LOGO_BYTES)} or smaller.`)
+    return errorsList
+  }
+
+  function friendlyUploadError(code) {
+    if (code === 'UNSUPPORTED_FILE_TYPE') return 'Only PNG, JPG, SVG, or WebP logos are allowed.'
+    if (code === 'FILE_TOO_LARGE') return `Logo must be ${formatBytes(MAX_LOGO_BYTES)} or smaller.`
+    if (code === 'MISSING_FILE') return 'Select a file before uploading.'
+    return typeof code === 'string' ? code : 'Upload failed'
+  }
+
+  function setLogoError(message) {
+    setErrors((prev) => ({...prev, logoUpload: message, _global: message}))
+  }
+
+  function clearLogoError() {
+    setErrors((prev) => {
+      const previousLogoError = prev.logoUpload
+      const next = {...prev}
+      delete next.logoUpload
+      if (previousLogoError && next._global === previousLogoError) delete next._global
+      return next
+    })
   }
 
   async function uploadLogo(dataUrl, filename) {
@@ -264,15 +307,15 @@ export default function ThemePage() {
         try {
           const fd = new FormData()
           fd.append('file', dataUrl, filename)
-          const res = await fetch('/api/admin/upload-logo-multipart', {
+          const res = await csrfFetch('/api/admin/upload-logo-multipart', {
             method: 'POST',
-            credentials: 'include',
             body: fd,
           })
           if (res.ok) {
             const j = await res.json()
             if (j.assetId)
               setForm((prev) => ({...prev, logoUrl: j.url || prev.logoUrl, logoAssetId: j.assetId}))
+            clearLogoError()
             return j.url || j.assetId || null
           }
           // if multipart not supported or failed, fall through to JSON flow
@@ -301,24 +344,24 @@ export default function ThemePage() {
         })
       }
 
-      const res2 = await fetch('/api/admin/upload-logo', {
+      const res2 = await csrfFetch('/api/admin/upload-logo', {
         method: 'POST',
-        credentials: 'include',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({filename, data: dataStr}),
       })
       if (!res2.ok) {
         const err = await res2.json().catch(() => ({}))
-        setErrors({_global: err.error || 'Upload failed'})
+        setLogoError(friendlyUploadError(err.error))
         return null
       }
       const j2 = await res2.json()
       if (j2.assetId)
         setForm((prev) => ({...prev, logoUrl: j2.url || prev.logoUrl, logoAssetId: j2.assetId}))
+      clearLogoError()
       return j2.url || j2.assetId || null
     } catch (e) {
       console.error('uploadLogo failed', e)
-      setErrors({_global: 'Upload failed'})
+      setLogoError('Upload failed')
       return null
     }
   }
@@ -630,16 +673,29 @@ export default function ThemePage() {
                   <div style={{marginTop: 6}}>
                     <input
                       type="file"
-                      accept="image/*"
+                      accept="image/png,image/jpeg,image/svg+xml,image/webp"
                       onChange={async (e) => {
                         const f = e.target.files && e.target.files[0]
                         if (!f) return
+                        const validationErrors = validateLogoFile(f)
+                        if (validationErrors.length) {
+                          setLogoError(validationErrors.join(' '))
+                          e.target.value = ''
+                          return
+                        }
+                        clearLogoError()
                         const url = await uploadLogo(f, f.name)
                         if (url) setForm((prev) => ({...prev, logoUrl: url}))
                       }}
                     />
+                    <div style={{fontSize: 12, opacity: 0.8}}>
+                      Allowed: PNG, JPG, SVG, WebP · Max {formatBytes(MAX_LOGO_BYTES)}
+                    </div>
                   </div>
-                  {errors._global && <div style={{color: 'red'}}>{errors._global}</div>}
+                  {errors.logoUpload && <div style={{color: 'red'}}>{errors.logoUpload}</div>}
+                  {!errors.logoUpload && errors._global && (
+                    <div style={{color: 'red'}}>{errors._global}</div>
+                  )}
                 </div>
 
                 <div style={{marginTop: 8}}>

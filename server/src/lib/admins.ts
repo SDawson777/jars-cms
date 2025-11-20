@@ -1,5 +1,6 @@
 import fs from 'fs'
 import path from 'path'
+import {logger} from './logger'
 
 // Admin role and user model used for simple RBAC. This is file-backed now but
 // can be swapped for a DB or Sanity-backed source in the future.
@@ -36,7 +37,7 @@ export function loadAdmins(): AdminsConfig | null {
     cached = parsed
     return parsed
   } catch (err) {
-    console.error('Failed to read admins config', err)
+    logger.error('admin.config.read_failed', err)
     return null
   }
 }

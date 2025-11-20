@@ -70,6 +70,13 @@ All endpoints return JSON. Preview (draft) mode is enabled by supplying the head
 
 ## Admin endpoints used by integrators
 
+- POST /analytics/event
+  - Purpose: record content views/clicks. Accepts `{ type: 'view'|'click', contentType: 'article'|'faq'|'legal'|'product', contentSlug, brandSlug?, storeSlug? }`.
+  - Headers:
+    - `X-Analytics-Key`: one of the comma-separated keys configured in `ANALYTICS_INGEST_KEY`.
+    - `X-Analytics-Signature`: `hex(HMAC_SHA256(rawBody, X-Analytics-Key))`.
+  - Notes: the server rejects unsigned or mismatched requests with `401 INVALID_ANALYTICS_SIGNATURE`. Raw body bytes must match exactly what is signed; most clients should stringify JSON first, compute the signature, then send that same string as the body.
+
 - GET /api/admin/analytics/overview
   - Auth: admin_token (requires VIEWER/EDITOR roles depending on access)
   - Response: aggregated analytics payload with topArticles, topProducts, storeEngagement, productDemand, etc.

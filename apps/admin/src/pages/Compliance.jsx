@@ -1,4 +1,5 @@
 import React, {useEffect, useState} from 'react'
+import {csrfFetch} from '../lib/csrf'
 
 export default function Compliance() {
   const [rows, setRows] = useState(null)
@@ -94,9 +95,8 @@ export default function Compliance() {
               )
                 return
               try {
-                const r = await fetch('/api/admin/compliance/snapshot', {
+                const r = await csrfFetch('/api/admin/compliance/snapshot', {
                   method: 'POST',
-                  credentials: 'include',
                   headers: {'Content-Type': 'application/json'},
                   body: JSON.stringify({brand: brandFilter || undefined}),
                 })
@@ -155,9 +155,8 @@ export default function Compliance() {
                 onClick={async () => {
                   setSnapshotLoading(true)
                   try {
-                    const r = await fetch('/api/admin/compliance/snapshot', {
+                    const r = await csrfFetch('/api/admin/compliance/snapshot', {
                       method: 'POST',
-                      credentials: 'include',
                       headers: {'Content-Type': 'application/json'},
                       body: JSON.stringify({brand: brandFilter || undefined}),
                     })

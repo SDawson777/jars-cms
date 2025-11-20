@@ -1,6 +1,8 @@
 import {describe, it, expect, beforeEach, vi} from 'vitest'
-import request from 'supertest'
+import supertest from 'supertest'
 import jwt from 'jsonwebtoken'
+import crypto from 'crypto'
+import {withAdminCookies} from './helpers'
 
 // mocks for sanity client used by POST /analytics/event
 var createClientMock: any
@@ -25,18 +27,46 @@ vi.mock('@sanity/client', () => {
 
 // mocks for fetchCMS used by admin endpoint
 var fetchCMSMock: any
+var createWriteClientMock: any
+var createOrReplaceMock: any
 vi.mock('../server/src/lib/cms', () => {
   fetchCMSMock = vi.fn()
-  return {fetchCMS: fetchCMSMock}
+  createOrReplaceMock = vi.fn()
+  createWriteClientMock = vi.fn(() => ({
+    createOrReplace: createOrReplaceMock,
+  }))
+  return {
+    fetchCMS: fetchCMSMock,
+    createWriteClient: createWriteClientMock,
+  }
 })
 
 import app from '../server/src'
+
+const ANALYTICS_KEY = process.env.ANALYTICS_INGEST_KEY || 'test-analytics-key'
+
+function appRequest() {
+  return supertest(app) as any
+}
+
+function signedAnalyticsRequest(body: Record<string, any>) {
+  const payload = JSON.stringify(body)
+  const signature = crypto.createHmac('sha256', ANALYTICS_KEY).update(payload).digest('hex')
+  return appRequest()
+    .post('/analytics/event')
+    .set('Content-Type', 'application/json')
+    .set('X-Analytics-Key', ANALYTICS_KEY)
+    .set('X-Analytics-Signature', signature)
+    .send(payload)
+}
 
 beforeEach(() => {
   createClientMock.mockClear()
   createIfNotExistsMock.mockReset()
   commitMock.mockReset()
   fetchCMSMock.mockReset()
+  createWriteClientMock?.mockClear()
+  createOrReplaceMock?.mockReset()
   process.env.JWT_SECRET = 'dev-secret'
 })
 
@@ -67,13 +97,27 @@ describe('POST /analytics/event', () => {
       lastUpdated: now,
     })
 
-    const res = await request(app)
-      .post('/analytics/event')
-      .send({type: 'view', contentType: 'article', contentSlug: 'test-article'})
+    const res = await signedAnalyticsRequest({
+      type: 'view',
+      contentType: 'article',
+      contentSlug: 'test-article',
+    })
     expect(res.status).toBe(200)
     expect(res.body).toHaveProperty('ok', true)
     expect(res.body).toHaveProperty('metric')
     expect(res.body.metric).toHaveProperty('views', 1)
+  })
+
+  it('rejects requests with invalid signatures', async () => {
+    const payload = {type: 'view', contentType: 'article', contentSlug: 'unsigned'}
+    const res = await appRequest()
+      .post('/analytics/event')
+      .set('Content-Type', 'application/json')
+      .set('X-Analytics-Key', ANALYTICS_KEY)
+      .set('X-Analytics-Signature', 'not-valid')
+      .send(JSON.stringify(payload))
+    expect(res.status).toBe(401)
+    expect(res.body).toHaveProperty('error', 'INVALID_ANALYTICS_SIGNATURE')
   })
 })
 
@@ -96,9 +140,7 @@ describe('GET /api/admin/analytics/content-metrics', () => {
       {id: 't', email: 'admin', role: 'VIEWER'},
       process.env.JWT_SECRET || 'dev-secret',
     )
-    const res = await request(app)
-      .get('/api/admin/analytics/content-metrics')
-      .set('Cookie', `admin_token=${token}`)
+    const res = await withAdminCookies(appRequest().get('/api/admin/analytics/content-metrics'), token)
     expect(res.status).toBe(200)
     expect(Array.isArray(res.body)).toBe(true)
     expect(res.body[0]).toHaveProperty('contentSlug')
@@ -119,25 +161,26 @@ describe('GET /api/admin/analytics/overview', () => {
     const storeRows = [{storeSlug: 's1', views: 100, clickThroughs: 10}]
 
     // fetchCMS is called 4 times + storeRows call = 5 sequential calls in our implementation
+    fetchCMSMock.mockResolvedValueOnce(null)
     fetchCMSMock.mockResolvedValueOnce(topArticles)
     fetchCMSMock.mockResolvedValueOnce(topFaqs)
     fetchCMSMock.mockResolvedValueOnce(topProducts)
     fetchCMSMock.mockResolvedValueOnce(productsForDemand)
+    fetchCMSMock.mockResolvedValueOnce(null)
     fetchCMSMock.mockResolvedValueOnce(storeRows)
 
     const token = jwt.sign(
       {id: 't', email: 'admin', role: 'ORG_ADMIN'},
       process.env.JWT_SECRET || 'dev-secret',
     )
-    const res = await request(app)
-      .get('/api/admin/analytics/overview')
-      .set('Cookie', `admin_token=${token}`)
+  const res = await withAdminCookies(appRequest().get('/api/admin/analytics/overview'), token)
     expect(res.status).toBe(200)
     expect(res.body).toHaveProperty('topArticles')
     expect(res.body).toHaveProperty('topFaqs')
     expect(res.body).toHaveProperty('topProducts')
     expect(res.body).toHaveProperty('storeEngagement')
     expect(res.body).toHaveProperty('productDemand')
+    expect(res.headers['x-analytics-overview-cache']).toBe('MISS')
     // productDemand should include p1 and p2 with statuses
     const pd = res.body.productDemand
     expect(pd.find((d: any) => d.slug === 'p1')).toBeTruthy()

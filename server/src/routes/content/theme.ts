@@ -61,7 +61,7 @@ themeRouter.get('/', async (req, res) => {
     res.set('Cache-Control', 'public, max-age=86400, stale-while-revalidate=3600')
     return res.json(out)
   } catch (err) {
-    console.error('failed to fetch theme', err)
+    req.log.error('content.theme.fetch_failed', err)
     return res.status(500).json({error: 'FAILED'})
   }
 })

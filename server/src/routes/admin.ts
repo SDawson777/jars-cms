@@ -1,9 +1,11 @@
 import {Router} from 'express'
+import crypto from 'crypto'
 import {fetchCMS, createWriteClient} from '../lib/cms'
 import {computeCompliance} from '../lib/compliance'
 import {z} from 'zod'
 import {requireRole} from '../middleware/requireRole'
 import {portableTextToHtml} from '../lib/portableText'
+import {logger} from '../lib/logger'
 
 // helper to build tenant filters based on admin scope
 function buildScopeFilter(admin: any) {
@@ -51,31 +53,127 @@ export const adminRouter = Router()
 // Simple in-memory cache for overview responses to avoid repeated heavy queries.
 const overviewCache: Map<string, {ts: number; data: any}> = new Map()
 const OVERVIEW_CACHE_TTL = Number(process.env.ANALYTICS_OVERVIEW_CACHE_TTL_MS || 30000)
+const ANALYTICS_CACHE_DOC_PREFIX = 'analyticsOverviewCache'
+const MAX_LOGO_BYTES = Number(process.env.MAX_LOGO_BYTES || 2 * 1024 * 1024)
+const ALLOWED_LOGO_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'svg', 'webp'])
+const ALLOWED_LOGO_MIME = new Set(['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp'])
+
+function buildAnalyticsCacheKey(admin: any, query: any) {
+  return JSON.stringify({
+    org: admin?.organizationSlug || null,
+    brand: admin?.brandSlug || null,
+    store: admin?.storeSlug || null,
+    query: query || {},
+  })
+}
+
+function getAnalyticsCacheDocId(cacheKey: string) {
+  const hash = crypto.createHash('sha256').update(cacheKey).digest('hex').slice(0, 32)
+  return `${ANALYTICS_CACHE_DOC_PREFIX}-${hash}`
+}
+
+async function readPersistentAnalyticsOverviewCache(cacheKey: string, ttlMs: number) {
+  try {
+    const doc = await fetchCMS(
+      '*[_id == $id][0]{payload, ts}',
+      {id: getAnalyticsCacheDocId(cacheKey)},
+    )
+    if (!doc || !(doc as any).payload || !(doc as any).ts) return null
+    const age = Date.now() - Date.parse((doc as any).ts)
+    if (Number.isFinite(age) && age < ttlMs) {
+      return JSON.parse((doc as any).payload)
+    }
+  } catch (err) {
+    logger.warn('analytics overview cache read failed', {
+      error: err instanceof Error ? err.message : String(err),
+    })
+  }
+  return null
+}
+
+async function writePersistentAnalyticsOverviewCache(cacheKey: string, data: any) {
+  try {
+    const client = createWriteClient()
+    await client.createOrReplace({
+      _id: getAnalyticsCacheDocId(cacheKey),
+      _type: 'analyticsOverviewCache',
+      scopeKey: cacheKey,
+      payload: JSON.stringify(data),
+      ts: new Date().toISOString(),
+    })
+  } catch (err) {
+    logger.warn('analytics overview cache write failed', {
+      error: err instanceof Error ? err.message : String(err),
+    })
+  }
+}
+
+function inferExtension(filename?: string) {
+  if (!filename) return ''
+  const parts = filename.toLowerCase().split('.')
+  return parts.length > 1 ? parts.pop() || '' : ''
+}
+
+function extractMimeFromDataUrl(data?: string) {
+  if (typeof data !== 'string') return null
+  const match = data.match(/^data:([^;]+);base64,/)
+  return match ? match[1] : null
+}
+
+function isAllowedLogoType(filename: string, mime?: string | null) {
+  const ext = inferExtension(filename)
+  if (ext && ALLOWED_LOGO_EXTENSIONS.has(ext)) return true
+  if (mime && ALLOWED_LOGO_MIME.has(mime.toLowerCase())) return true
+  return false
+}
+
+function validateLogoUpload(buffer: Buffer, filename: string, mime?: string | null) {
+  if (!buffer || !buffer.length) return {ok: false, status: 400, error: 'INVALID_FILE'}
+  if (!isAllowedLogoType(filename, mime))
+    return {ok: false, status: 400, error: 'UNSUPPORTED_FILE_TYPE'}
+  if (buffer.length > MAX_LOGO_BYTES)
+    return {ok: false, status: 413, error: 'FILE_TOO_LARGE'}
+  return {ok: true as const}
+}
 
 // multer may not be installed in all environments (tests/mock). Require lazily.
 let upload: any = null
 try {
   const m = require('multer')
-  upload = m({storage: m.memoryStorage(), limits: {fileSize: 5 * 1024 * 1024}})
+  upload = m({storage: m.memoryStorage(), limits: {fileSize: MAX_LOGO_BYTES}})
 } catch {
   upload = null
 }
 
 // preview middleware consistent with content routes
 adminRouter.use((req, _res, next) => {
-  // Preview gating consistent with content routes. If PREVIEW_SECRET is set,
-  // require the secret in the query or X-Preview-Secret header.
+  // Preview gating consistent with content routes; require matching PREVIEW_SECRET.
+  const previewSecretEnv = process.env.PREVIEW_SECRET
+  const previewSecretConfigured = typeof previewSecretEnv === 'string' && previewSecretEnv.length > 0
+  if (!previewSecretConfigured) {
+    ;(req as any).preview = false
+    return next()
+  }
+
   const previewQuery = req.query && req.query.preview === 'true'
   const previewHeader = String(req.header('X-Preview') || '').toLowerCase() === 'true'
+  const previewRequested = !!(previewQuery || previewHeader)
 
-  const previewSecretEnv = process.env.PREVIEW_SECRET
   const querySecret = req.query && String((req.query as any).secret || '')
   const headerSecret = String(req.header('X-Preview-Secret') || '')
+  const querySecretValid = previewQuery && querySecret === previewSecretEnv
+  const headerSecretValid = previewHeader && headerSecret === previewSecretEnv
+  const previewGranted = previewRequested && (querySecretValid || headerSecretValid)
 
-  const querySecretValid = !previewSecretEnv || querySecret === previewSecretEnv
-  const headerSecretValid = !previewSecretEnv || headerSecret === previewSecretEnv
+  if (previewRequested && !previewGranted) {
+    req.log.warn('admin.preview.secret_mismatch', {
+      path: req.path,
+      origin: req.headers.origin,
+      admin: (req as any)?.admin?.email,
+    })
+  }
 
-  ;(req as any).preview = (previewQuery && querySecretValid) || (previewHeader && headerSecretValid)
+  ;(req as any).preview = previewGranted
   next()
 })
 
@@ -109,7 +207,7 @@ adminRouter.get('/products', requireRole('EDITOR'), async (req, res) => {
     res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=300')
     res.json(filtered)
   } catch (err) {
-    console.error('Failed to fetch admin products', err)
+    req.log.error('admin.products.fetch_failed', err)
     res.status(500).json({error: 'FAILED_TO_FETCH_PRODUCTS'})
   }
 })
@@ -131,7 +229,7 @@ adminRouter.get('/products/recalled-count', requireRole('VIEWER'), async (req, r
     overviewCache.set(cacheKey, {ts: Date.now(), data})
     res.json(data)
   } catch (err) {
-    console.error('failed to fetch recalled count', err)
+    req.log.error('admin.products.recalled_count_failed', err)
     res.status(500).json({error: 'FAILED'})
   }
 })
@@ -172,12 +270,12 @@ adminRouter.post('/products/:id/recall', requireRole('EDITOR'), async (req, res)
       })
     } catch (auditErr) {
       // Don't fail the main request if audit write fails; log and continue
-      console.error('failed to write recall audit', auditErr)
+      req.log.error('admin.products.recall_audit_failed', auditErr)
     }
 
     res.json({ok: true})
   } catch (err) {
-    console.error('failed to update recall', err)
+    req.log.error('admin.products.recall_toggle_failed', err)
     res.status(500).json({error: 'FAILED_TO_UPDATE'})
   }
 })
@@ -191,7 +289,7 @@ adminRouter.get('/organizations', requireRole('VIEWER'), async (req, res) => {
     const items = await fetchCMS(q, params)
     res.json(items || [])
   } catch (err) {
-    console.error('failed orgs', err)
+    req.log.error('admin.organizations.fetch_failed', err)
     res.status(500).json({error: 'FAILED'})
   }
 })
@@ -203,7 +301,7 @@ adminRouter.get('/personalization/rules', requireRole('VIEWER'), async (req, res
     const rows = await fetchCMS<any[]>(q, {})
     res.json(rows || [])
   } catch (err) {
-    console.error('failed to fetch personalization rules', err)
+    req.log.error('admin.personalization.rules_fetch_failed', err)
     res.status(500).json({error: 'FAILED'})
   }
 })
@@ -218,7 +316,7 @@ adminRouter.get('/theme', requireRole('VIEWER'), async (req, res) => {
     if (!item) return res.status(404).json({error: 'NOT_FOUND'})
     res.json(item)
   } catch (err) {
-    console.error('failed admin theme read', err)
+    req.log.error('admin.theme.fetch_failed', err)
     res.status(500).json({error: 'FAILED'})
   }
 })
@@ -301,7 +399,7 @@ adminRouter.post('/theme', requireRole('EDITOR'), async (req, res) => {
     const created = await client.createOrReplace(doc)
     res.json({ok: true, theme: created})
   } catch (err) {
-    console.error('failed admin theme write', err)
+    req.log.error('admin.theme.upsert_failed', err)
     res.status(500).json({error: 'FAILED'})
   }
 })
@@ -364,7 +462,7 @@ adminRouter.get('/theme/configs', requireRole('VIEWER'), async (req, res) => {
 
     res.json({items, total: Number(total || 0), page, perPage})
   } catch (e) {
-    console.error('failed fetch theme configs', e)
+    req.log.error('admin.theme.configs_fetch_failed', e)
     res.status(500).json({error: 'FAILED'})
   }
 })
@@ -466,7 +564,7 @@ adminRouter.post('/theme/config', requireRole('EDITOR'), async (req, res) => {
     const created = await client.createOrReplace(doc)
     res.json({ok: true, theme: created})
   } catch (e) {
-    console.error('failed save theme config', e)
+    req.log.error('admin.theme.config_save_failed', e)
     res.status(500).json({error: 'FAILED'})
   }
 })
@@ -481,7 +579,7 @@ adminRouter.delete('/theme/config/:id', requireRole('EDITOR'), async (req, res) 
     await client.delete(id)
     res.json({ok: true})
   } catch (e) {
-    console.error('failed delete theme config', e)
+    req.log.error('admin.theme.config_delete_failed', e)
     res.status(500).json({error: 'FAILED'})
   }
 })
@@ -546,7 +644,7 @@ adminRouter.post('/theme/preview', requireRole('EDITOR'), async (req, res) => {
   } catch (e) {
     if (e && (e as any).errors)
       return res.status(400).json({error: 'INVALID', details: (e as any).errors})
-    console.error('failed theme preview', e)
+    req.log.error('admin.theme.preview_failed', e)
     res.status(500).json({error: 'FAILED'})
   }
 })
@@ -560,7 +658,7 @@ adminRouter.get('/brands', requireRole('VIEWER'), async (req, res) => {
     const items = await fetchCMS(q, params)
     res.json(items || [])
   } catch (err) {
-    console.error('failed brands', err)
+    req.log.error('admin.brands.fetch_failed', err)
     res.status(500).json({error: 'FAILED'})
   }
 })
@@ -574,7 +672,7 @@ adminRouter.get('/stores', requireRole('VIEWER'), async (req, res) => {
     const items = await fetchCMS(q, params)
     res.json(items || [])
   } catch (err) {
-    console.error('failed stores', err)
+    req.log.error('admin.stores.fetch_failed', err)
     res.status(500).json({error: 'FAILED'})
   }
 })
@@ -594,7 +692,7 @@ adminRouter.get('/articles', requireRole('VIEWER'), async (req, res) => {
     const items = await fetchCMS(q, params)
     res.json(items || [])
   } catch (err) {
-    console.error('failed articles', err)
+    req.log.error('admin.articles.fetch_failed', err)
     res.status(500).json({error: 'FAILED'})
   }
 })
@@ -613,7 +711,7 @@ adminRouter.get('/faqs', requireRole('VIEWER'), async (req, res) => {
     const items = await fetchCMS(q, params)
     res.json(items || [])
   } catch (err) {
-    console.error('failed faqs', err)
+    req.log.error('admin.faqs.fetch_failed', err)
     res.status(500).json({error: 'FAILED'})
   }
 })
@@ -633,7 +731,7 @@ adminRouter.get('/legal', requireRole('VIEWER'), async (req, res) => {
     const items = await fetchCMS(q, params)
     res.json(items || [])
   } catch (err) {
-    console.error('failed legal', err)
+    req.log.error('admin.legal.fetch_failed', err)
     res.status(500).json({error: 'FAILED'})
   }
 })
@@ -649,7 +747,7 @@ adminRouter.get('/analytics/content-metrics', requireRole('VIEWER'), async (req,
     const items = await fetchCMS(q, params)
     res.json(items || [])
   } catch (err) {
-    console.error('failed analytics metrics', err)
+    req.log.error('admin.analytics.metrics_fetch_failed', err)
     res.status(500).json({error: 'FAILED'})
   }
 })
@@ -667,12 +765,7 @@ adminRouter.get('/analytics/overview', requireRole('ORG_ADMIN'), async (req, res
     const perPage = Math.max(1, Number((req.query as any).perPage || limit))
 
     // Construct cache key from admin scope and query params
-    const cacheKey = JSON.stringify({
-      brand: admin?.brandSlug,
-      store: admin?.storeSlug,
-      org: admin?.organizationSlug,
-      query: req.query,
-    })
+    const cacheKey = buildAnalyticsCacheKey(admin, req.query)
     const cached = overviewCache.get(cacheKey)
     if (cached && Date.now() - cached.ts < OVERVIEW_CACHE_TTL) {
       // apply pagination to cached top lists if needed
@@ -681,7 +774,15 @@ adminRouter.get('/analytics/overview', requireRole('ORG_ADMIN'), async (req, res
         out.topProducts = out.topProducts.slice(page * perPage, page * perPage + perPage)
       if (out.productSeries && perPage)
         out.productSeries = out.productSeries.slice(page * perPage, page * perPage + perPage)
+      res.set('X-Analytics-Overview-Cache', 'HIT')
       return res.json(out)
+    }
+
+    const persisted = await readPersistentAnalyticsOverviewCache(cacheKey, OVERVIEW_CACHE_TTL)
+    if (persisted) {
+      overviewCache.set(cacheKey, {ts: Date.now(), data: persisted})
+      res.set('X-Analytics-Overview-Cache', 'PERSISTED')
+      return res.json(persisted)
     }
 
     // Top articles and faqs by views, top products by clickThroughs
@@ -846,9 +947,11 @@ adminRouter.get('/analytics/overview', requireRole('ORG_ADMIN'), async (req, res
       // ignore cache set errors
     }
 
+    await writePersistentAnalyticsOverviewCache(cacheKey, responsePayload)
+    res.set('X-Analytics-Overview-Cache', 'MISS')
     return res.json(responsePayload)
   } catch (err) {
-    console.error('failed analytics overview', err)
+    req.log.error('admin.analytics.overview_failed', err)
     res.status(500).json({error: 'FAILED'})
   }
 })
@@ -884,7 +987,7 @@ adminRouter.get('/compliance/overview', requireRole('ORG_ADMIN'), async (req, re
     // backward-compatible response: return array for live compute
     return res.json(rows)
   } catch (err) {
-    console.error('failed compliance overview', err)
+    req.log.error('admin.compliance.overview_failed', err)
     res.status(500).json({error: 'FAILED'})
   }
 })
@@ -963,7 +1066,7 @@ adminRouter.post('/compliance/snapshot', requireRole('ORG_ADMIN'), async (req, r
     const studioUrl = studioBase
       ? `${studioBase.replace(/\/$/, '')}/desk/complianceSnapshot;${historyId}`
       : null
-    console.info('compliance snapshot run', {
+    req.log.info('admin.compliance.snapshot_run', {
       runBy,
       scope: targetBrand ? `brand:${targetBrand}` : `org:${targetOrg || 'global'}`,
       ts,
@@ -971,7 +1074,7 @@ adminRouter.post('/compliance/snapshot', requireRole('ORG_ADMIN'), async (req, r
     })
     res.json({ok: true, id: historyId, ts, studioUrl})
   } catch (err) {
-    console.error('failed manual compliance snapshot', err)
+    req.log.error('admin.compliance.snapshot_failed', err)
     res.status(500).json({error: 'FAILED'})
   }
 })
@@ -1007,7 +1110,7 @@ adminRouter.get('/compliance/history', requireRole('ORG_ADMIN'), async (req, res
       : []
     res.json(mapped)
   } catch (e) {
-    console.error('failed fetch compliance history', e)
+    req.log.error('admin.compliance.history_failed', e)
     res.status(500).json({error: 'FAILED'})
   }
 })
@@ -1021,7 +1124,7 @@ adminRouter.get('/analytics/settings', requireRole('ORG_ADMIN'), async (req, res
     const settings = await fetchCMS(q, {org})
     res.json(settings || null)
   } catch (err) {
-    console.error('failed fetch analytics settings', err)
+    req.log.error('admin.analytics.settings_fetch_failed', err)
     res.status(500).json({error: 'FAILED'})
   }
 })
@@ -1093,7 +1196,7 @@ adminRouter.post('/analytics/settings', requireRole('ORG_ADMIN'), async (req, re
 
     res.json({ok: true, settings: created})
   } catch (err) {
-    console.error('failed save analytics settings', err)
+    req.log.error('admin.analytics.settings_save_failed', err)
     res.status(500).json({error: 'FAILED'})
   }
 })
@@ -1122,7 +1225,7 @@ adminRouter.get('/legal/current', requireRole('VIEWER'), async (req, res) => {
       bodyHtml: portableTextToHtml(it.body),
     })
   } catch (err) {
-    console.error('failed current legal', err)
+    req.log.error('admin.legal.current_fetch_failed', err)
     res.status(500).json({error: 'FAILED'})
   }
 })
@@ -1134,8 +1237,11 @@ adminRouter.post('/upload-logo', requireRole('EDITOR'), async (req, res) => {
     if (!filename || !data) return res.status(400).json({error: 'MISSING_FILE'})
     const client = createWriteClient()
     // strip data URL prefix if present
+    const mime = extractMimeFromDataUrl(typeof data === 'string' ? data : '')
     const base64 = typeof data === 'string' ? data.replace(/^data:.*;base64,/, '') : ''
     const buffer = Buffer.from(base64, 'base64')
+    const validation = validateLogoUpload(buffer, filename, mime)
+    if (!validation.ok) return res.status(validation.status).json({error: validation.error})
     // use Sanity assets.upload
     // @ts-ignore
     const uploaded = await client.assets.upload('image', buffer, {filename})
@@ -1144,7 +1250,7 @@ adminRouter.post('/upload-logo', requireRole('EDITOR'), async (req, res) => {
     const assetId = uploaded && (uploaded._id || (uploaded.asset && uploaded.asset._id))
     res.json({ok: true, url, assetId, uploaded})
   } catch (err) {
-    console.error('failed upload logo', err)
+    req.log.error('admin.theme.logo_upload_failed', err)
     res.status(500).json({error: 'FAILED'})
   }
 })
@@ -1159,6 +1265,8 @@ adminRouter.post(
       // multer places file on req.file
       const file = (req as any).file
       if (!file) return res.status(400).json({error: 'MISSING_FILE'})
+      const validation = validateLogoUpload(file.buffer, file.originalname || 'logo', file.mimetype)
+      if (!validation.ok) return res.status(validation.status).json({error: validation.error})
       const client = createWriteClient()
       // use buffer from multer
       // @ts-ignore
@@ -1169,7 +1277,7 @@ adminRouter.post(
       const assetId = uploaded && (uploaded._id || (uploaded.asset && uploaded.asset._id))
       res.json({ok: true, url, assetId, uploaded})
     } catch (err) {
-      console.error('failed multipart upload', err)
+      req.log.error('admin.theme.logo_upload_multipart_failed', err)
       res.status(500).json({error: 'FAILED'})
     }
   },

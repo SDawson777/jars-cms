@@ -1,1 +1,1 @@
-export {schemaTypes} from '../sanity/schemas'
+export {default as schemaTypes} from '../../apps/studio/schemaTypes'

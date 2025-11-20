@@ -35,6 +35,10 @@ export default function Personalization() {
     setResult(j)
   }
 
+  const studioBaseUrl = (import.meta.env.VITE_STUDIO_URL || '/studio').replace(/\/$/, '')
+  const previewSecret = import.meta.env.VITE_PREVIEW_SECRET
+  const studioPreviewSuffix = previewSecret ? `?secret=${encodeURIComponent(previewSecret)}` : ''
+
   return (
     <div style={{padding: 20}}>
       <h1>Personalization Rules</h1>
@@ -62,11 +66,7 @@ export default function Personalization() {
                 </div>
                 <div>
                   <a
-                    href={
-                      (process.env.SANITY_STUDIO_URL || '/studio').replace(/\/$/, '') +
-                      '/desk/personalizationRule;' +
-                      r._id
-                    }
+                    href={`${studioBaseUrl}/desk/personalizationRule;${r._id}${studioPreviewSuffix}`}
                     target="_blank"
                     rel="noreferrer"
                   >

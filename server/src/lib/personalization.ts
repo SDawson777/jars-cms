@@ -1,4 +1,5 @@
 import {fetchCMS} from './cms'
+import {logger} from './logger'
 
 type UserContext = Record<string, any>
 
@@ -38,7 +39,7 @@ export async function loadRules(): Promise<Rule[]> {
     const rows = (await fetchCMS<Rule[]>(q, {})) || []
     return rows
   } catch (e) {
-    console.error('failed to load personalization rules', e)
+    logger.error('personalization.rules_load_failed', e)
     return []
   }
 }

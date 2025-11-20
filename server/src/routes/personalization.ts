@@ -44,7 +44,7 @@ personalizationRouter.post('/apply', async (req, res) => {
     const result = await evaluatePersonalization(ctx, mapped)
     res.json({items: result})
   } catch (err) {
-    console.error('failed personalization apply', err)
+    req.log.error('personalization.apply_failed', err)
     res.status(400).json({error: 'INVALID_REQUEST'})
   }
 })

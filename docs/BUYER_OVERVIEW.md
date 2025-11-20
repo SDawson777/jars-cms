@@ -14,8 +14,9 @@ This is a concise summary you can hand to a buyer evaluating the CMS.
 - Admin SPA: React-based admin UI for theme editing, asset uploads, and quick admin workflows.
 - Theming: deterministic theme documents with asset reference persistence and accessible `logo.alt` support.
 - Legal pack & versioning: legal documents support state scoping and effective date ranges.
-- Analytics hooks: lightweight content metrics and hooks for recording views and counters.
+- Analytics hooks: hardened, HMAC-authenticated ingestion API with persistent caching for dashboard queries.
 - Import/export/promote scripts for dataset migrations and snapshots.
+- Security posture: mandatory secrets, CSRF protection on all admin routes, and audit-friendly logging on preview/admin actions.
 
 ## Key value props for buyers
 
@@ -36,7 +37,11 @@ This is a concise summary you can hand to a buyer evaluating the CMS.
 
 - A Sanity project with a dataset. Set `SANITY_PROJECT_ID` and `SANITY_DATASET`.
 - API tokens: `SANITY_API_TOKEN` (read+write) and optionally `SANITY_PREVIEW_TOKEN`.
-- `JWT_SECRET` used for admin token signing.
+- Secrets: `JWT_SECRET` (admin token signing) and `PREVIEW_SECRET` (preview gating with matching headers/queries).
+- Analytics ingest key(s): `ANALYTICS_INGEST_KEY` (comma-separated list) used to HMAC-sign `/analytics/event` payloads. Clients must send `X-Analytics-Key` and `X-Analytics-Signature` on every request.
+- Upload guardrails: optional `MAX_LOGO_BYTES` (defaults to 2 MB) and matching client-side validation so buyers can enforce branding policies.
+- Hosting for the API (Node host or Docker) and static hosting for Admin SPA (optional preview server included).
+- CI that installs `multer` if you plan to use multipart uploads in CI integration tests.
 - Hosting for the API (Node host or Docker) and static hosting for Admin SPA (optional preview server included).
 - CI that installs `multer` if you plan to use multipart uploads in CI integration tests.
 
@@ -46,3 +51,5 @@ This is a concise summary you can hand to a buyer evaluating the CMS.
 - Copy `.env.example` → `.env` and fill values.
 - Run `npm install`, `npm run build:api`, `npm run build:admin`.
 - Deploy `server/dist` or build and run Docker image `server/Dockerfile`.
+- Provide analytics ingest keys to trusted clients (mobile/web) and rotate them during handoff.
+- (Optional) Enable the compliance snapshot scheduler by setting `COMPLIANCE_SNAPSHOT_ENABLED=true` and ensuring the runbook in `docs/DEPLOYMENT.md` is followed.

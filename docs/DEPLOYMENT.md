@@ -8,7 +8,8 @@ This document explains how to run and build the API, Studio, and Admin SPA, plus
 
 ```bash
 cp .env.example .env
-# fill SANITY_PROJECT_ID, SANITY_DATASET, SANITY_API_TOKEN, SANITY_PREVIEW_TOKEN, JWT_SECRET
+# fill SANITY_PROJECT_ID, SANITY_DATASET, SANITY_API_TOKEN,
+# SANITY_PREVIEW_TOKEN, PREVIEW_SECRET, JWT_SECRET, ANALYTICS_INGEST_KEY
 
 > SECURITY NOTE: Do NOT commit real tokens. Create real secrets in your deployment environment and
 > add them to your environment or secret manager. Rotate any tokens that may have been exposed.
@@ -170,6 +171,7 @@ npm run cms:promote -- --force
 ## Troubleshooting
 
 - If multipart uploads fail, ensure `multer` is installed (it's used by the server multipart upload route). The server includes a JSON dataURL fallback path to allow uploads when `multer` isn't available.
+- If logo uploads fail with `UNSUPPORTED_FILE_TYPE` or `FILE_TOO_LARGE`, verify the file is PNG/JPG/SVG/WebP and under the `MAX_LOGO_BYTES` limit (defaults to 2 MB). Increase the env var and matching Admin SPA copy if you want to allow larger assets.
 - For preview/draft content make sure `SANITY_PREVIEW_TOKEN` is set and use `X-Preview: true` or `?preview=true` when calling endpoints.
 
 ## New security & runtime configuration
@@ -178,8 +180,15 @@ The server now supports additional environment variables to harden runtime behav
 
 - `CORS_ORIGINS` (comma-separated list) — when set, the API will only accept requests from the listed origins. Example: `https://app.example.com,https://studio.example.com`. If not set, a safe development default of `http://localhost:3000,http://localhost:5173` is used.
 - `JWT_SECRET` — secret used to sign admin session tokens. Must be provided in production and rotated regularly.
+- `PREVIEW_SECRET` — secret compared against the `X-Preview-Secret` header or `?secret=` query param before draft content is returned. Required when preview mode is exposed.
 - `ADMIN_LOGIN_RATE_LIMIT_WINDOW_MS` & `ADMIN_LOGIN_RATE_LIMIT_MAX` — configure the admin login rate limiter window (ms) and max requests per window. Defaults: `60000` (1 minute) and `8` respectively.
 - `ANALYTICS_RATE_LIMIT_WINDOW_MS` & `ANALYTICS_RATE_LIMIT_MAX` — configure rate limiting for analytics event ingestion. Defaults: `60000` (1 minute) and `60` respectively.
+- `ANALYTICS_FALLBACK_RATE_WINDOW_MS` & `ANALYTICS_FALLBACK_RATE_MAX` — IP scoped limiter applied before writes hit Sanity in case API keys/signatures leak. Defaults: `60000` and `120`.
+- `ANALYTICS_INGEST_KEY` — comma-separated list of shared secrets. Clients must send `X-Analytics-Key` and `X-Analytics-Signature` (HMAC-SHA256 raw body) with every `/analytics/event` POST.
+- `MAX_LOGO_BYTES` — maximum allowed bytes for logo uploads (defaults to 2 MB). The Admin SPA enforces the same limit client-side. Adjust if you expect larger SVGs and ensure `JSON_BODY_LIMIT` comfortably exceeds the encoded payload size.
+- `JSON_BODY_LIMIT` — override the limit used by `express.json` (default `4mb`). Increase if you allow larger base64 uploads.
+- `COMPLIANCE_SNAPSHOT_ENABLED` — set to `true` to run the scheduled compliance snapshot job on boot. Requires write access to Sanity and should only run in one instance at a time.
+- `LOG_LEVEL` — optional; set to `debug` to include debug-level logs. Defaults to emitting info/warn/error only.
 
 Analytics tuning
 
@@ -195,3 +204,11 @@ You can also pass query parameters to the overview endpoint `/api/admin/analytic
 Example: `/api/admin/analytics/overview?windowDays=14&recentDays=3&wRecentClicks=3`
 
 Recommendation: Configure these vars in your host's secret manager (Vercel, Netlify, Docker secrets, Kubernetes secrets) and avoid placing them in `.env` committed files. If you suspect a secret was committed, rotate it immediately.
+
+## Observability and log forwarding
+
+- The API emits newline-delimited JSON logs via `server/src/lib/logger.ts`. Use your platform's log drains (e.g., CloudWatch, Datadog, Logtail) to ingest them without additional agents.
+- Incoming requests automatically receive a `requestId`. If you already add an `X-Request-Id` or `X-Correlation-Id` header at the edge/load-balancer, the middleware will reuse it so you can correlate across services.
+- Each request surfaces lifecycle events (`request.start`, `request.complete`, `request.aborted`) with latency, status code, and response byte size, which makes it easy to build RED dashboards.
+- All route handlers call `req.log.*` so structured error fields (e.g., `error.message`, `stack`) stay machine-readable. Avoid `console.*` outside of the logger to maintain consistent output.
+- Flip `LOG_LEVEL=debug` temporarily during incidents to capture verbose insights; remember to remove it or revert to the default level after debugging to keep logs lean.

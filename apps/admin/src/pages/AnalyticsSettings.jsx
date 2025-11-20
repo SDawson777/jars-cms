@@ -1,4 +1,5 @@
 import React, {useEffect, useState} from 'react'
+import {csrfFetch} from '../lib/csrf'
 
 export default function AnalyticsSettings() {
   const [loading, setLoading] = useState(true)
@@ -65,9 +66,8 @@ export default function AnalyticsSettings() {
   async function save() {
     setSaving(true)
     try {
-      const res = await fetch('/api/admin/analytics/settings', {
+      const res = await csrfFetch('/api/admin/analytics/settings', {
         method: 'POST',
-        credentials: 'include',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(settings),
       })

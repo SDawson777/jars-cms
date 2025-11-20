@@ -4,8 +4,9 @@ The repository includes a Sanity Studio at `apps/studio/` used by editors. This 
 
 ## Where schemas live
 
-- `apps/studio/sanity.config.ts` - Studio configuration
-- `apps/studio/schemas` - document and object schemas
+- `apps/studio/sanity.config.ts` - Studio configuration (Sanity v3)
+- `apps/studio/schemaTypes` - document and object schemas, grouped in `__cms` and `__admin`
+- `apps/studio/schemaTypes/index.ts` - aggregates every schema and is imported by the config
 - `apps/studio/config/preview.ts` - preview config
 
 ## New/important fields and flows
@@ -25,6 +26,10 @@ The repository includes a Sanity Studio at `apps/studio/` used by editors. This 
 - `recallAudit` — audit documents written when product recalls are toggled.
 
 Editors: when creating rules or theme configs prefer the Studio for schema-driven editing; the Admin SPA is provided for operational flows (theme editing, quick uploads, and simulation) and writes deterministic ids for theme configs.
+
+### Upgrading the schema
+
+Sanity v3 expects schema definitions to be part of a module tree that exports an array. If you add a new schema, drop the file inside `apps/studio/schemaTypes/__cms` or `__admin` and add it to `apps/studio/schemaTypes/index.ts`; the Studio config automatically consumes that list via `schema: {types: schemaTypes}`.
 
 ## Running Studio locally
 

@@ -12,6 +12,7 @@ export default defineConfig({
   test: {
     // Run tests in Node environment to match server behavior in CI. Individual UI tests may opt into jsdom.
     environment: 'node',
+    setupFiles: [path.resolve(__dirname, 'tests/setupEnv.ts')],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],
