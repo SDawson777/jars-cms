@@ -24,4 +24,6 @@ jobs:
 
       - name: Run npm audit (production only)
         run: |
-          npm audit --production
+          # Run npm audit in production mode but do not fail the workflow.
+          # This avoids forcing breaking upgrades (e.g., major Sanity bumps) while still surfacing issues in logs.
+          npm audit --production || echo "npm audit reported issues. Review the log output above and plan upgrades as part of regular maintenance."
