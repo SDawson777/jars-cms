@@ -9,10 +9,10 @@ export default function Deals() {
   useEffect(() => {
     async function load() {
       try {
-        // use Nimbus endpoint which lists active deals
+        // use legacy endpoint which lists active deals
         const q = channel
-          ? `/api/v1/nimbus/content/deals?limit=50&channel=${encodeURIComponent(channel)}`
-          : '/api/v1/nimbus/content/deals?limit=50'
+          ? `/api/v1/content/deals?limit=50&channel=${encodeURIComponent(channel)}`
+          : '/api/v1/content/deals?limit=50'
         const res = await fetch(q, {credentials: 'include'})
         if (res.ok) {
           const j = await res.json()

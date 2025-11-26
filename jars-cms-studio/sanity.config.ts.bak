@@ -2,8 +2,8 @@ import {defineConfig} from 'sanity'
 import {deskTool} from 'sanity/desk'
 
 export default defineConfig({
-  name: 'nimbus-cms',
-  title: 'Nimbus CMS',
+  name: 'jars-cms',
+  title: 'Jars CMS',
   projectId: process.env.SANITY_PROJECT_ID!,
   dataset: process.env.SANITY_DATASET!,
   plugins: [deskTool()],

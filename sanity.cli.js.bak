@@ -12,9 +12,5 @@ export default defineCliConfig({
    * Move to `deployment.autoUpdates` shape per newer Sanity recommendations.
    * Learn more at https://www.sanity.io/docs/cli#auto-updates
    */
-  deployment: {
-    // Provided by Sanity after first deploy to avoid interactive prompt
-    appId: 'aespjmcnx28x6c7zijz4t0ms',
-    autoUpdates: true,
-  },
+  deployment: {autoUpdates: true},
 })

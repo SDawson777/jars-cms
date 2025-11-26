@@ -119,8 +119,6 @@ app.get('/admin/settings', requireAdmin, (_req, res) =>
 // content routes (existing + new)
 // Mount content routes for legacy API consumers
 app.use('/api/v1/content', contentRouter)
-// Mount content routes for Nimbus namespace
-app.use('/api/v1/nimbus/content', contentRouter)
 // Mount content routes for mobile and external consumers (mobile contract)
 app.use('/content', contentRouter)
 
