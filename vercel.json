@@ -1,5 +1,5 @@
 {
-  "rootDirectory": "nimbus-admin",
+  "rootDirectory": "nimbus-admin-ui",
   "buildCommand": "npm run build",
   "installCommand": "npm install",
   "outputDirectory": "dist",
