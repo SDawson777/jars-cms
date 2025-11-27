@@ -1,7 +1,9 @@
 {
-  "rootDirectory": "nimbus-admin-ui",
   "buildCommand": "npm run build",
   "installCommand": "npm install",
-  "outputDirectory": "dist",
-  "framework": "vite"
+  "outputDirectory": "server/dist",
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/(.*)", "destination": "/" }
+  ]
 }
