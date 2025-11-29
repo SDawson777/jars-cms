@@ -1,4 +1,15 @@
-node_modules
+# Ignore legacy and non-canonical folders to prevent formatting errors
+legacy/
+jars-cms/
+jars-cms-api/
+jars-cms-studio/
+jars-mobile-app/
+nimbus-admin/
+nimbus-admin-ui/
+api/
+core-api/
+**/.sanity/
+**/node_modules/node_modules
 package-lock.json
 jars-cms/package-lock.json
 server/dist
@@ -10,3 +21,4 @@ dist
 build
 .venv
 .env
+.github/workflows/

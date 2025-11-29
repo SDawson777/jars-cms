@@ -7,7 +7,8 @@ export const contentRouter = Router()
 contentRouter.use((req, _res, next) => {
   // Preview requires both the preview flag and a matching PREVIEW_SECRET
   const previewSecretEnv = process.env.PREVIEW_SECRET
-  const previewSecretConfigured = typeof previewSecretEnv === 'string' && previewSecretEnv.length > 0
+  const previewSecretConfigured =
+    typeof previewSecretEnv === 'string' && previewSecretEnv.length > 0
   if (!previewSecretConfigured) {
     ;(req as any).preview = false
     return next()

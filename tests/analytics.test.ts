@@ -140,7 +140,10 @@ describe('GET /api/admin/analytics/content-metrics', () => {
       {id: 't', email: 'admin', role: 'VIEWER'},
       process.env.JWT_SECRET || 'dev-secret',
     )
-    const res = await withAdminCookies(appRequest().get('/api/admin/analytics/content-metrics'), token)
+    const res = await withAdminCookies(
+      appRequest().get('/api/admin/analytics/content-metrics'),
+      token,
+    )
     expect(res.status).toBe(200)
     expect(Array.isArray(res.body)).toBe(true)
     expect(res.body[0]).toHaveProperty('contentSlug')
@@ -226,7 +229,10 @@ describe('Analytics summary endpoints', () => {
       productDemand: [],
       productSeries: [],
     }
-    fetchCMSMock.mockResolvedValueOnce({payload: JSON.stringify(payload), ts: new Date().toISOString()})
+    fetchCMSMock.mockResolvedValueOnce({
+      payload: JSON.stringify(payload),
+      ts: new Date().toISOString(),
+    })
 
     const token = jwt.sign(
       {id: 'viewer', email: 'viewer@example.com', role: 'VIEWER'},
@@ -245,7 +251,7 @@ describe('Analytics summary endpoints', () => {
   it('forces a fresh aggregation on POST /summary', async () => {
     const now = new Date().toISOString()
     const topArticles = [{contentSlug: 'a1', views: 10, clickThroughs: 2, lastUpdated: now}]
-  const topFaqs: any[] = []
+    const topFaqs: any[] = []
     const topProducts = [{contentSlug: 'p1', views: 5, clickThroughs: 3, lastUpdated: now}]
     const productsForDemand = [{contentSlug: 'p1', views: 5, clickThroughs: 3, date: now}]
     const storeRows = [{storeSlug: 's1', views: 5, clickThroughs: 1}]

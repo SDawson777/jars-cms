@@ -7,9 +7,7 @@ const ADMIN_COOKIE_HEADERS = (token: string) => ({
 
 function applyAdminHeaders(test: any, token: string) {
   const headers = ADMIN_COOKIE_HEADERS(token)
-  return test
-    .set('Cookie', headers.cookie)
-    .set('X-CSRF-Token', headers.csrf)
+  return test.set('Cookie', headers.cookie).set('X-CSRF-Token', headers.csrf)
 }
 
 export function withAdminCookies(agent: any, token: string) {

@@ -1,5 +1,7 @@
 import {Request, Response, NextFunction} from 'express'
 import {AdminRole} from '../lib/admins'
+import {Role} from '../types/roles'
+import {logger} from '../lib/logger'
 
 // role hierarchy for comparisons
 const ROLE_ORDER: Record<AdminRole, number> = {
@@ -11,6 +13,19 @@ const ROLE_ORDER: Record<AdminRole, number> = {
   VIEWER: 1,
 }
 
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        id: string
+        email: string
+        role: Role
+        tenantId?: string
+      }
+    }
+  }
+}
+
 export function requireRole(minRole: AdminRole) {
   return (req: Request, res: Response, next: NextFunction) => {
     const admin = (req as any).admin
@@ -20,6 +35,32 @@ export function requireRole(minRole: AdminRole) {
       return res.status(403).json({error: 'FORBIDDEN'})
     }
     return next()
+  }
+}
+
+// New RBAC middleware for JWT-based role checks
+export function requireRoleV2(allowedRoles: Role[]) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    if (!req.user) {
+      logger.warn('requireRoleV2: No user found in request')
+      res.status(401).json({code: 'UNAUTHORIZED', message: 'Authentication required'})
+      return
+    }
+
+    if (!allowedRoles.includes(req.user.role)) {
+      logger.warn('requireRoleV2: User lacks required role', {
+        userId: req.user.id,
+        userRole: req.user.role,
+        allowedRoles,
+      })
+      res.status(403).json({
+        code: 'FORBIDDEN',
+        message: `Access denied. Required roles: ${allowedRoles.join(', ')}`,
+      })
+      return
+    }
+
+    next()
   }
 }
 

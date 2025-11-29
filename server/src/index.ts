@@ -3,17 +3,23 @@ import cors from 'cors'
 import path from 'path'
 import cookieParser from 'cookie-parser'
 import helmet from 'helmet'
+import compression from 'compression'
+import rateLimit from 'express-rate-limit'
+import morgan from 'morgan'
+import swaggerUi from 'swagger-ui-express'
 import {logger} from './lib/logger'
 import adminAuthRouter from './routes/adminAuth'
 import {requireAdmin} from './middleware/adminAuth'
 import {requireCsrfToken, ensureCsrfCookie} from './middleware/requireCsrfToken'
 import {requestLogger} from './middleware/requestLogger'
+import {swaggerSpec} from './lib/swagger'
 
 import {contentRouter} from './routes/content'
 import {personalizationRouter} from './routes/personalization'
 import {statusRouter} from './routes/status'
 import {adminRouter} from './routes/admin'
 import analyticsRouter from './routes/analytics'
+import aiRouter from './routes/ai'
 import {startComplianceScheduler} from './jobs/complianceSnapshotJob'
 
 const requiredSecrets = ['JWT_SECRET', 'PREVIEW_SECRET'] as const
@@ -46,7 +52,14 @@ if (isProduction) {
 
 const app = express()
 // Security middlewares
-app.use(helmet())
+app.use(
+  helmet({
+    hsts: process.env.NODE_ENV === 'production' ? undefined : false,
+  }),
+)
+if (process.env.NODE_ENV === 'production') {
+  app.use(helmet.hsts())
+}
 // Ensure JSON + URL-encoded parsers and capture raw bodies for HMAC validation
 const jsonBodyLimit = process.env.JSON_BODY_LIMIT || '4mb'
 app.use(
@@ -59,6 +72,16 @@ app.use(
     },
   }),
 )
+app.use(compression())
+app.use(
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+  }),
+)
+app.use(morgan(':method :url :status :res[content-length] - :response-time ms'))
 app.use(express.urlencoded({extended: true}))
 app.use(requestLogger)
 
@@ -100,10 +123,21 @@ app.use(
 
 // Parse cookies (used by admin auth)
 app.use(cookieParser())
+
+// Mount OpenAPI/Swagger documentation at /docs
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
+
 // Serve a small static landing page for human visitors / buyers
+app.get('/healthz', (_req, res) => {
+  res.status(200).json({status: 'ok', timestamp: new Date().toISOString()})
+})
 app.get('/', (_req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8')
-  res.status(200).send(`<!doctype html><html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Nimbus CMS API</title><style>:root{--primary:#3F7AFC}body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:24px;color:#111827;line-height:1.5}.chip{display:inline-block;padding:2px 8px;border-radius:999px;background:#DBEAFE;color:#1E40AF;font-size:12px;margin-left:8px}.card{background:#fff;border:1px solid #E5E7EB;border-radius:8px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,0.04);max-width:720px}a{color:var(--primary);text-decoration:none}a:hover{text-decoration:underline}ul{padding-left:18px}code{background:#F3F4F6;padding:2px 6px;border-radius:4px}</style></head><body><div class="card"><h1 style="margin-top:0">Nimbus CMS API <span class="chip">online</span></h1><p>Status: <strong>OK</strong></p><ul><li>Time: ${new Date().toISOString()}</li><li>Environment: ${process.env.NODE_ENV || 'development'}</li></ul><p>Quick links:</p><ul><li><a href="/status">/status</a></li><li><a href="/api/v1/status">/api/v1/status</a></li><li><a href="/content">/content</a> (public content routes)</li></ul><p>Admin API is available under <code>/api/admin</code> (requires auth & CSRF).</p></div></body></html>`)
+  res
+    .status(200)
+    .send(
+      `<!doctype html><html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Nimbus CMS API</title><style>:root{--primary:#3F7AFC}body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:24px;color:#111827;line-height:1.5}.chip{display:inline-block;padding:2px 8px;border-radius:999px;background:#DBEAFE;color:#1E40AF;font-size:12px;margin-left:8px}.card{background:#fff;border:1px solid #E5E7EB;border-radius:8px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,0.04);max-width:720px}a{color:var(--primary);text-decoration:none}a:hover{text-decoration:underline}ul{padding-left:18px}code{background:#F3F4F6;padding:2px 6px;border-radius:4px}</style></head><body><div class="card"><h1 style="margin-top:0">Nimbus CMS API <span class="chip">online</span></h1><p>Status: <strong>OK</strong></p><ul><li>Time: ${new Date().toISOString()}</li><li>Environment: ${process.env.NODE_ENV || 'development'}</li></ul><p>Quick links:</p><ul><li><a href="/status">/status</a></li><li><a href="/api/v1/status">/api/v1/status</a></li><li><a href="/content">/content</a> (public content routes)</li><li><a href="/docs">/docs</a> (OpenAPI documentation)</li></ul><p>Admin API is available under <code>/api/admin</code> (requires auth & CSRF).</p></div></body></html>`,
+    )
 })
 const staticDir = path.join(__dirname, '..', 'static')
 app.use(express.static(staticDir))
@@ -134,6 +168,9 @@ app.use('/personalization', personalizationRouter)
 // Analytics endpoint (collect events)
 app.use('/analytics', analyticsRouter)
 
+// AI chat endpoint (protected by RBAC)
+app.use('/api/v1/nimbus/ai', aiRouter)
+
 // status routes (legacy and a simple /status alias)
 app.use('/api/v1/status', statusRouter)
 app.use('/status', statusRouter)
@@ -144,9 +181,12 @@ app.use('/api/admin', requireAdmin, ensureCsrfCookie, requireCsrfToken, adminRou
 if (process.env.ENABLE_COMPLIANCE_SCHEDULER === 'true') {
   try {
     const instanceId = process.env.INSTANCE_ID || process.env.HOSTNAME || 'local'
-    logger.info('Starting compliance scheduler (ensure only one instance has ENABLE_COMPLIANCE_SCHEDULER=true)', {
-      instanceId,
-    })
+    logger.info(
+      'Starting compliance scheduler (ensure only one instance has ENABLE_COMPLIANCE_SCHEDULER=true)',
+      {
+        instanceId,
+      },
+    )
     startComplianceScheduler()
   } catch (e) {
     logger.error('failed to start compliance scheduler', e)

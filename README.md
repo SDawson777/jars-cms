@@ -1,34 +1,85 @@
-## Deployment Overview
+# Nimbus Cannabis OS CMS
+
+A multi-tenant, cannabis-focused CMS with Sanity at its core. Provides brand/store scoping, legal versioned content, analytics hooks, and Admin SPA for theming and asset management.
+
+## Architecture Overview
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│  Sanity Studio  │────▶│   Sanity Cloud  │◀────│   CMS API       │
+│  (Vercel)       │     │   (Headless)    │     │   (Railway)     │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+                                                          │
+                        ┌─────────────────────────────────┼─────────────┐
+                        │                                 │             │
+                  ┌─────▼──────┐                   ┌──────▼─────┐  ┌───▼────┐
+                  │ Admin SPA  │                   │ Mobile App │  │  Web   │
+                  │ (Vercel)   │                   │            │  │        │
+                  └────────────┘                   └────────────┘  └────────┘
+```
+
+## Monorepo Structure (pnpm workspaces)
+
+```
+nimbus-cms/
+├── pnpm-workspace.yaml          # Workspace configuration
+├── package.json                 # Root scripts (workspace-aware)
+├── ENV_VARIABLES.md            # Environment variable reference
+├── apps/
+│   ├── admin/                  # Admin SPA (React + Vite)
+│   │   ├── package.json        # name: "admin"
+│   │   ├── vite.config.js
+│   │   ├── .env.production
+│   │   └── src/
+│   └── studio/                 # Sanity Studio
+│       ├── package.json        # name: "studio"
+│       ├── sanity.config.ts
+│       └── vercel.json
+├── server/                     # Express API server
+│   ├── package.json            # name: "server"
+│   ├── tsconfig.json
+│   └── src/
+└── docs/                       # Documentation
+```
+
+## Quick Start
+
+### Prerequisites
+
+- Node.js 20+
+- pnpm 9+ (`npm install -g pnpm`)
+- Sanity project ID: `ygbu28p2`
+
+### Installation
+
+````bash
+# Clone repository
+git clone https://github.com/SDawson777/nimbus-cms.git
+cd nimbus-cms
+## Monorepo & Deployments
 
 - API (Railway):
-	- Source: `server/`
-	- Build: `npm run build:api` (TypeScript compile to `server/dist`)
-	- Start: `node server/dist/server.js`
-	- Env (Railway):
-		- `JWT_SECRET` (>=24 chars, non-placeholder)
-		- `PREVIEW_SECRET`
-		- `CORS_ORIGINS` (comma-separated, e.g. `https://nimbus-cms-admin.vercel.app,https://nimbus-cms.vercel.app`)
-		- Optional: `JSON_BODY_LIMIT`, `ENABLE_COMPLIANCE_SCHEDULER`
+      - Source: `server/`
+      - Build: `pnpm --filter server build` (TypeScript → `server/dist`)
+      - Start: `pnpm --filter server start`
+      - Env (Railway):
+            - `JWT_SECRET` (>=24 chars, non-placeholder)
+            - `CORS_ORIGINS` (comma-separated, e.g. `https://nimbus-cms-admin.vercel.app,https://nimbus-cms.vercel.app`)
+            - Optional: `JSON_BODY_LIMIT`, `ENABLE_COMPLIANCE_SCHEDULER`
 
 - Admin UI (Vercel + Vite):
-	- Root Directory: `apps/admin`
-	- Build Command: `npm run build`
-	- Output Directory: `dist`
-	- Env (Vercel Project):
-		- `VITE_NIMBUS_API_URL` → Railway API base (e.g. `https://<railway-app>.up.railway.app`)
+      - Root Directory: `apps/admin`
+      - Build Command: `pnpm --filter admin build`
+      - Output Directory: `dist`
+      - Env (Vercel Project):
+            - `VITE_NIMBUS_API_URL` → Railway API base (e.g. `https://<railway-app>.up.railway.app`)
 
 - CMS Studio (Vercel + Sanity):
-	- Root Directory: `apps/studio`
-	- Build Command: `sanity build --cwd apps/studio`
-	- Env (Vercel Project):
-		- `SANITY_STUDIO_PROJECT_ID` → `ygbu28p2`
-		- `SANITY_STUDIO_DATASET` → `production`
-
-## CORS and Integration
-
-- Set `CORS_ORIGINS` on Railway to include Admin and Studio Vercel domains.
-- Admin app uses `import.meta.env.VITE_NIMBUS_API_URL` for all API requests.
-- API exposes friendly landing at `/`, health at `/status`, and legacy at `/api/v1/status`.
+      - Root Directory: `apps/studio`
+      - Build Command: `pnpm --filter studio build` (Sanity v4)
+      - Env (Vercel Project):
+            - `SANITY_STUDIO_PROJECT_ID` → `ygbu28p2`
+            - `SANITY_STUDIO_DATASET` → `production`
 
 ## Project Mapping
 
@@ -36,115 +87,135 @@
 - `apps/admin/` → Vercel project (Admin UI)
 - `apps/studio/` → Vercel project (Sanity Studio)
 
-# Nimbus Cannabis OS CMS (Sanity + Express)
+## Quickstart (pnpm)
 
-A multi-tenant, cannabis-focused CMS tailored for mobile and web apps. Provides a Sanity-backed content API, Admin SPA, and Studio for editorial workflows.
+### Railway (API Server)
+2. Install dependencies:
+**Repository:** github.com/SDawson777/nimbus-cms
+**Root Directory:** `server/`
+```bash
+npm install -g pnpm
+pnpm install
+````
 
-## Quick marketing blurb
-
-Multi-tenant CMS with Sanity at its core, offering brand and store scoping, legal/versioned content, analytics hooks, and a simple Admin SPA for theming and asset management.
-
-## Quickstart
-
-1. Clone the repo:
+**Start Command:**
 
 ```bash
-git clone <repo-url>
-cd nimbus-cms
+3. Run locally:
 ```
-
-2. Copy env and install:
 
 ```bash
-cp .env.example .env
-# fill env vars: SANITY_PROJECT_ID, SANITY_DATASET, SANITY_API_TOKEN,
-# SANITY_PREVIEW_TOKEN, JWT_SECRET, PREVIEW_SECRET, ANALYTICS_INGEST_KEY
-npm install
+pnpm --filter server dev
+pnpm --filter admin dev
+pnpm --filter studio dev
 ```
 
-3. Run locally (Studio + API):
+### Vercel (Admin UI)
+
+4. Build projects:
 
 ```bash
-npm run dev
+pnpm --filter server build
+pnpm --filter admin build
+pnpm --filter studio build
 ```
 
-4. Start Admin SPA in dev:
+pnpm install && pnpm --filter admin build
 
+````
+
+**Output Directory:** `apps/admin/dist`
+
+**Environment Variables:**
+- `VITE_NIMBUS_API_URL=https://nimbus-cms-production.up.railway.app/api/v1/nimbus`
+- `VITE_APP_ENV=production`
+
+---
+
+### Vercel (Sanity Studio)
+**Project:** nimbus-cms
+**Root Directory:** `apps/studio`
+
+**Build Command:**
 ```bash
-npm run dev:admin
+pnpm install && pnpm --filter studio build
+````
+
+**Output Directory:** `apps/studio/dist`
+
+**Environment Variables:**
+
+- `SANITY_STUDIO_PROJECT_ID=ygbu28p2`
+- `SANITY_STUDIO_DATASET=production`
+
+---
+
+## API Endpoints
+
+**Base URL (Production):** `https://nimbus-cms-production.up.railway.app`
+
+- `GET /` - Friendly API landing page
+- `GET /status` - Health check
+- `GET /api/v1/status` - Legacy health check
+- `GET /api/v1/content` - Public content API
+- `POST /api/admin/*` - Admin endpoints (auth required)
+- `GET /personalization/:tenantId` - Personalization engine
+- `POST /analytics` - Analytics ingest
+
+## CORS Configuration
+
+Set `CORS_ORIGINS` on Railway to include deployed frontend URLs:
+
+```
+CORS_ORIGINS=https://nimbus-cms-admin.vercel.app,https://nimbus-cms.vercel.app
 ```
 
-## Overview (text diagram)
+## Multi-Tenant Architecture
 
-Studio → Sanity → CMS API → Mobile / Admin SPA
+- **Workspace Selector:** Admin UI includes tenant context (Global, Tenant A, B, C)
+- **Tenant Scoping:** All API requests include `tenantId` query parameter
+- **LocalStorage Persistence:** Active tenant stored in `nimbus.activeTenant`
 
-- Editors use Studio to author & publish
-- CMS API queries Sanity and returns mobile-friendly JSON
-- Admin SPA talks to protected `/api/admin/*` endpoints for theme and asset management
+## Tech Stack
 
-## Available npm scripts
+### Admin SPA
 
-Here are the important scripts (root `package.json`):
+- React 18 + TypeScript
+- Vite 5.4 (build tool)
+- React Router v6
+- Recharts 2.10 (dashboards)
+- Axios (API client)
 
-- `npm run dev` — start Studio and API in parallel
-- `npm run dev:api` — start API in dev (ts-node + nodemon)
-- `npm run dev:studio` — run Studio dev server
-- `npm run dev:admin` — run Admin SPA in dev
-- `npm run build:api` — compile server TypeScript (outputs to `server/dist`)
-- `npm run start:api` — run compiled API
-- `npm run build:admin` — build Admin SPA for production
-- `npm run start:admin` — preview built Admin SPA
-- `npm test` — run test suite (vitest)
-- `npm run test:a11y` — run pa11y against a running admin preview (serve `apps/admin/dist` on port 8080 first)
-- `npm run cms:export` / `cms:import` / `cms:promote` — content migration helpers
+### API Server
 
-## Deployment Verification (Docker + CI)
+- Express 5 + TypeScript
+- Helmet (security)
+- CORS + JWT auth
+- Sanity Client SDK
 
-- The production artifact ships through a three-stage Docker build: `admin-builder` compiles the Vite Admin SPA, `api-builder` compiles the Express API and embeds the admin assets, and `runtime` (node:20-slim) publishes only the compiled output.
-- The Admin SPA is validated at build time—if `apps/admin/dist` is missing or empty, the Docker build fails immediately, blocking regressions.
-- GitHub Actions (`.github/workflows/docker-build.yml`) automatically runs `docker build`, spins up a throwaway container, and inspects `/app/server/admin-dist` to guarantee the admin bundle ships with the API image.
-- The workflow copies `admin-dist` out of the container to prove the assets exist and are non-empty, preventing broken console deploys from reaching buyers.
-- Keeping the Admin SPA inside the final runtime image—and checking for it in CI—protects production stability and ensures every release is verifiable end-to-end.
+### CMS Studio
 
-Buyers can run the same checks locally before promotion:
+- Sanity v4
+- Desk Tool + Vision
 
-```bash
-docker build -t nimbus-cms-prod .
-docker run -p 4010:4010 nimbus-cms-prod
-```
+## Documentation
 
-## Analytics ingestion security
+- [ENV_VARIABLES.md](./ENV_VARIABLES.md) - Environment variable reference
+- [ARCHITECTURE.md](./docs/ARCHITECTURE.md) - Technical architecture
+- [DEPLOYMENT.md](./docs/DEPLOYMENT.md) - Deployment guide
+- [API_REFERENCE_ADMIN.md](./docs/API_REFERENCE_ADMIN.md) - API documentation
 
-- Configure `ANALYTICS_INGEST_KEY` (or a comma-separated list of keys) in your environment.
-- Every POST to `/analytics/event` must include:
-	- `X-Analytics-Key`: one of the configured keys.
-	- `X-Analytics-Signature`: `hex(HMAC_SHA256(rawBody, X-Analytics-Key))`.
-- Requests without a valid key/signature are rejected with 401 and still counted toward the fallback rate limit.
+## Key Features
 
-Example client snippet:
+✅ Multi-tenant content scoping  
+✅ Recharts-powered dashboards (Line, Bar, Area charts)  
+✅ Design system with 7 reusable components  
+✅ Settings management (Theme, API Keys, Workspace)  
+✅ Centralized API client with automatic tenant injection  
+✅ JWT authentication and CSRF protection  
+✅ Compliance and scheduling system  
+✅ Analytics ingest and reporting
 
-```ts
-import crypto from 'crypto'
+## License
 
-const body = JSON.stringify({type: 'view', contentType: 'article', contentSlug: 'welcome'})
-const key = process.env.ANALYTICS_INGEST_KEY!
-const signature = crypto.createHmac('sha256', key).update(body).digest('hex')
-
-await fetch('https://cms.example.com/analytics/event', {
-	method: 'POST',
-	headers: {
-		'Content-Type': 'application/json',
-		'X-Analytics-Key': key,
-		'X-Analytics-Signature': signature,
-	},
-	body,
-})
-```
-
-## Notes for buyers
-
-- Ensure you set up a Sanity project and tokens. Use `SANITY_PREVIEW_TOKEN` for draft previews.
-- Admin endpoints require an `admin_token` cookie (JWT) with appropriate roles.
-- Review [`docs/RBAC_MATRIX.md`](./docs/RBAC_MATRIX.md) for the complete endpoint × role matrix before issuing admin credentials to partners.
-
-For more details see `docs/ARCHITECTURE.md`, `docs/MOBILE_CONTRACT.md`, `docs/DEPLOYMENT.md`, `docs/STUDIO.md`, `docs/BUYER_OVERVIEW.md`, [`docs/API_REFERENCE_ADMIN.md`](./docs/API_REFERENCE_ADMIN.md), and [`docs/SECURITY_NOTES.md`](./docs/SECURITY_NOTES.md).
+UNLICENSED - Proprietary software

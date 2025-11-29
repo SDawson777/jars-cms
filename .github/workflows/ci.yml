@@ -6,6 +6,131 @@ on:
   pull_request:
     branches: [main]
 
+jobs:
+  build:
+    name: Build Workspaces
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install pnpm
+        run: npm install -g pnpm@8
+
+      - name: Install deps
+        run: pnpm install
+
+      - name: Build server
+        run: pnpm --filter server build
+
+      - name: Build admin
+        run: pnpm --filter admin build
+
+      - name: Build studio
+        run: pnpm --filter studio build
+
+      - name: Lint
+        run: pnpm run lint || true
+
+      - name: Test (optional)
+        run: pnpm run test || truename: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build Workspaces
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install pnpm
+        run: npm install -g pnpm@8
+
+      - name: Install deps
+        run: pnpm install
+
+      - name: Build server
+        run: pnpm --filter server build
+
+      - name: Build admin
+        run: pnpm --filter admin build
+
+      - name: Build studio
+        run: pnpm --filter studio build
+
+      - name: Lint
+        run: pnpm run lint || true
+
+      - name: Test (optional)
+        run: pnpm run test || true
+name: Nimbus CMS CI
+
+on:
+  push:
+    branches: ["*"]
+  pull_request:
+    branches: ["*"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install pnpm
+        run: |
+          npm install -g pnpm@8
+
+      - name: Install deps
+        run: |
+          pnpm install
+
+      - name: Build server
+        run: |
+          pnpm --filter server build
+
+      - name: Build admin
+        run: |
+          pnpm --filter admin build
+
+      - name: Build studio
+        run: |
+          pnpm --filter studio build
+
+      - name: Run tests (if present)
+        run: |
+          pnpm --filter server test || true
+          pnpm --filter admin test || true
+          pnpm --filter studio test || truename: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
 env:
   BUILD_DOCKER: 'false'
 

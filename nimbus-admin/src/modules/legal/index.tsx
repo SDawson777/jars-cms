@@ -1,4 +1,8 @@
 import React from 'react'
-export default function LegalIndex(){
-  return <div style={{padding:24}}><h1>Legal Docs</h1></div>
+export default function LegalIndex() {
+  return (
+    <div style={{padding: 24}}>
+      <h1>Legal Docs</h1>
+    </div>
+  )
 }

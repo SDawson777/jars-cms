@@ -24,7 +24,7 @@ export default function Login() {
         setError(body.error || 'Login failed')
         return
       }
-  await refreshAdmin()
+      await refreshAdmin()
       nav('/dashboard')
     } catch (err) {
       setError('Network error')

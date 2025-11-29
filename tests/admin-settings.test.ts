@@ -59,7 +59,7 @@ describe('GET/POST /api/admin/analytics/settings', () => {
     }))
 
     const token = jwt.sign({id: 't', email: 'a', role: 'ORG_ADMIN'}, process.env.JWT_SECRET)
-  const authed = withAdminCookies(appRequest(), token)
+    const authed = withAdminCookies(appRequest(), token)
     const res = await authed
       .post('/api/admin/analytics/settings')
       .send({windowDays: 20, recentDays: 5})

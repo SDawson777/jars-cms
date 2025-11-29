@@ -103,7 +103,9 @@ export default function Analytics() {
         }}
       >
         <div>
-          <div style={{fontSize: 12, textTransform: 'uppercase', color: '#6b7280'}}>Last refresh</div>
+          <div style={{fontSize: 12, textTransform: 'uppercase', color: '#6b7280'}}>
+            Last refresh
+          </div>
           <strong>{summaryLoading ? 'Loading…' : lastRefreshedLabel}</strong>
           {summaryError && (
             <div style={{color: '#b91c1c', fontSize: 12}}>Summary error: {summaryError}</div>
@@ -126,7 +128,9 @@ export default function Analytics() {
           <button
             onClick={handleRefresh}
             disabled={!capabilities?.canRefreshAnalytics || refreshing}
-            title={capabilities?.canRefreshAnalytics ? 'Refresh analytics cache' : 'Insufficient role'}
+            title={
+              capabilities?.canRefreshAnalytics ? 'Refresh analytics cache' : 'Insufficient role'
+            }
           >
             {refreshing ? 'Refreshing…' : 'Refresh analytics'}
           </button>

@@ -36,11 +36,11 @@ Content-Type: application/json
 
 ### Candidate hydration strategies
 
-| Scenario | Recommendation |
-| --- | --- |
-| Client already fetched full content list | Pass the subset via `slugs` to avoid duplicate CMS queries. |
-| Client relies on server to source candidates | Omit `slugs`; the API will fetch eligible documents itself. |
-| Need mixed content types | Issue separate requests per type to keep rule evaluation simple. |
+| Scenario                                     | Recommendation                                                   |
+| -------------------------------------------- | ---------------------------------------------------------------- |
+| Client already fetched full content list     | Pass the subset via `slugs` to avoid duplicate CMS queries.      |
+| Client relies on server to source candidates | Omit `slugs`; the API will fetch eligible documents itself.      |
+| Need mixed content types                     | Issue separate requests per type to keep rule evaluation simple. |
 
 ## Response contract
 
@@ -72,12 +72,12 @@ Content-Type: application/json
 
 ## Retry, caching, and fallbacks
 
-| Topic | Guidance |
-| --- | --- |
-| TTL | Treat responses as **ephemeral**, refreshing at least every 5–15 minutes per user. |
-| CDN caching | Key on `channel`, `userId`, and the sorted `slugs` hash to avoid cross-user leakage. |
-| Failures | If the API responds with `>=500` or times out, fall back to deterministic ordering (e.g., recency) and log the incident. Consider exponential backoff with jitter. |
-| Cold start | Warm caches by making a best-effort request during app boot, but gate UI rendering on availability to avoid blocking the main thread. |
+| Topic       | Guidance                                                                                                                                                           |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| TTL         | Treat responses as **ephemeral**, refreshing at least every 5–15 minutes per user.                                                                                 |
+| CDN caching | Key on `channel`, `userId`, and the sorted `slugs` hash to avoid cross-user leakage.                                                                               |
+| Failures    | If the API responds with `>=500` or times out, fall back to deterministic ordering (e.g., recency) and log the incident. Consider exponential backoff with jitter. |
+| Cold start  | Warm caches by making a best-effort request during app boot, but gate UI rendering on availability to avoid blocking the main thread.                              |
 
 ## Webhook + scheduler integrations
 

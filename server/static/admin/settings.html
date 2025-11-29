@@ -131,7 +131,8 @@
 
         function loadUI() {
           const prefs =
-            (window.NIMBUS_A11Y && window.NIMBUS_A11Y.getPrefs && window.NIMBUS_A11Y.getPrefs()) || {}
+            (window.NIMBUS_A11Y && window.NIMBUS_A11Y.getPrefs && window.NIMBUS_A11Y.getPrefs()) ||
+            {}
           $('contrast').checked = !!prefs.contrast
           $('large').checked = !!prefs.large
           $('dyslexic').checked = !!prefs.dyslexic
@@ -154,7 +155,8 @@
               dyslexic: $('dyslexic').checked,
               reduceMotion: $('reduceMotion').checked,
             }
-            if (window.NIMBUS_A11Y && window.NIMBUS_A11Y.setPrefs) window.NIMBUS_A11Y.setPrefs(prefs)
+            if (window.NIMBUS_A11Y && window.NIMBUS_A11Y.setPrefs)
+              window.NIMBUS_A11Y.setPrefs(prefs)
             writeOut(prefs)
           })
 

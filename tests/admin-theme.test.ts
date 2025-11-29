@@ -23,13 +23,8 @@ vi.mock('../server/src/lib/cms', () => {
   }
 })
 
-const {
-  fetchCMSMock,
-  createWriteClientMock,
-  writeClientFetchMock,
-  createOrReplaceMock,
-  deleteMock,
-} = cmsMocks
+const {fetchCMSMock, createWriteClientMock, writeClientFetchMock, createOrReplaceMock, deleteMock} =
+  cmsMocks
 
 import app from '../server/src'
 

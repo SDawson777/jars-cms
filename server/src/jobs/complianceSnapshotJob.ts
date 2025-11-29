@@ -122,9 +122,7 @@ export async function runComplianceSnapshotOnce() {
 export function startComplianceScheduler(intervalMs?: number) {
   const ms = intervalMs || Number(process.env.COMPLIANCE_SNAPSHOT_INTERVAL_MS || 1000 * 60 * 60)
   // fire and schedule
-  runComplianceSnapshotOnce().catch((e) =>
-    logger.error('compliance.snapshot.initial_failed', e),
-  )
+  runComplianceSnapshotOnce().catch((e) => logger.error('compliance.snapshot.initial_failed', e))
   const id = setInterval(
     () => runComplianceSnapshotOnce().catch((e) => logger.error('compliance.snapshot.failed', e)),
     ms,

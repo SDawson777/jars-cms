@@ -95,9 +95,7 @@
         if (!items || !items.length) return '<p>No data available.</p>'
         return `
           <ol>
-            ${items
-              .map((item) => `<li>${labelFormatter(item)}</li>`)
-              .join('')}
+            ${items.map((item) => `<li>${labelFormatter(item)}</li>`).join('')}
           </ol>
         `
       }
@@ -147,14 +145,11 @@
             <div class="card-grid" style="margin-top: 16px">
               <article>
                 <h4>Product demand delta</h4>
-                ${metricList(
-                  productDemand,
-                  (item) => {
-                    const delta = productDelta(productSeriesBySlug[item.slug] || [])
-                    const trend = delta > 0 ? '▲' : delta < 0 ? '▼' : '•'
-                    return `${item.slug} — ${item.status} (${trend} ${delta} views day-over-day)`
-                  },
-                )}
+                ${metricList(productDemand, (item) => {
+                  const delta = productDelta(productSeriesBySlug[item.slug] || [])
+                  const trend = delta > 0 ? '▲' : delta < 0 ? '▼' : '•'
+                  return `${item.slug} — ${item.status} (${trend} ${delta} views day-over-day)`
+                })}
               </article>
               <article>
                 <h4>Store engagement</h4>

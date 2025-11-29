@@ -32,9 +32,12 @@ export default function Compliance() {
   const [snapshotLoading, setSnapshotLoading] = useState(false)
 
   const isMounted = useRef(true)
-  useEffect(() => () => {
-    isMounted.current = false
-  }, [])
+  useEffect(
+    () => () => {
+      isMounted.current = false
+    },
+    [],
+  )
 
   useEffect(() => {
     if (!brandFilter && scopedBrand) setBrandFilter(scopedBrand)
@@ -200,7 +203,9 @@ export default function Compliance() {
         }}
       >
         <div style={{border: '1px solid #e5e7eb', borderRadius: 8, padding: 16}}>
-          <div style={{fontSize: 12, textTransform: 'uppercase', color: '#6b7280'}}>Last snapshot</div>
+          <div style={{fontSize: 12, textTransform: 'uppercase', color: '#6b7280'}}>
+            Last snapshot
+          </div>
           <strong>{formatSnapshotLabel(snapshotTs)}</strong>
           {overviewLoading && <div style={{fontSize: 12, color: '#6b7280'}}>Refreshing…</div>}
         </div>
@@ -421,7 +426,10 @@ export default function Compliance() {
             <p>
               This will compute current compliance for the selected scope and persist a snapshot in
               Sanity. The target scope is{' '}
-              <strong>{normalizedBrandFilter ? `brand:${normalizedBrandFilter}` : `org:${orgLabel}`}</strong>.
+              <strong>
+                {normalizedBrandFilter ? `brand:${normalizedBrandFilter}` : `org:${orgLabel}`}
+              </strong>
+              .
             </p>
             {!canRunSnapshot && (
               <div style={{marginBottom: 12, color: '#b91c1c'}}>

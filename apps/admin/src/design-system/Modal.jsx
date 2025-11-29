@@ -1,6 +1,6 @@
 import React from 'react'
 
-export default function Modal({ isOpen, onClose, title, children }) {
+export default function Modal({isOpen, onClose, title, children}) {
   if (!isOpen) return null
 
   return (
@@ -15,7 +15,7 @@ export default function Modal({ isOpen, onClose, title, children }) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 1000
+        zIndex: 1000,
       }}
       onClick={onClose}
     >
@@ -27,15 +27,11 @@ export default function Modal({ isOpen, onClose, title, children }) {
           maxWidth: '500px',
           width: '90%',
           maxHeight: '90vh',
-          overflow: 'auto'
+          overflow: 'auto',
         }}
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
-        {title && (
-          <h2 style={{ marginTop: 0, marginBottom: 16, fontSize: 20 }}>
-            {title}
-          </h2>
-        )}
+        {title && <h2 style={{marginTop: 0, marginBottom: 16, fontSize: 20}}>{title}</h2>}
         {children}
       </div>
     </div>

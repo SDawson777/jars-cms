@@ -4,7 +4,13 @@ import {fetchCMS} from '../../lib/cms'
 
 export const copyRouter = Router()
 
-const contextOptions = ['onboarding', 'emptyStates', 'awards', 'accessibility', 'dataTransparency'] as const
+const contextOptions = [
+  'onboarding',
+  'emptyStates',
+  'awards',
+  'accessibility',
+  'dataTransparency',
+] as const
 
 const querySchema = z.object({
   context: z.enum(contextOptions),

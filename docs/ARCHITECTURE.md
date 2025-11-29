@@ -58,26 +58,26 @@ The codebase supports optional multi-tenant scoping at the org/brand/store level
 
 ### Role hierarchy
 
-| Role | Scope | Typical permissions |
-| --- | --- | --- |
-| OWNER | Global | Full superuser control across every tenant. |
-| ORG_ADMIN | Organization | Analytics + compliance across their org (and its brands/stores). |
-| BRAND_ADMIN | Brand | Manage one brand and all of its stores. |
-| EDITOR | Brand | Author content + theming for their assigned brand and its stores. |
-| STORE_MANAGER | Store | Operate only on their specific store overrides. |
-| VIEWER | Scoped read | Read-only dashboards scoped by their token (often brand/store). |
+| Role          | Scope        | Typical permissions                                               |
+| ------------- | ------------ | ----------------------------------------------------------------- |
+| OWNER         | Global       | Full superuser control across every tenant.                       |
+| ORG_ADMIN     | Organization | Analytics + compliance across their org (and its brands/stores).  |
+| BRAND_ADMIN   | Brand        | Manage one brand and all of its stores.                           |
+| EDITOR        | Brand        | Author content + theming for their assigned brand and its stores. |
+| STORE_MANAGER | Store        | Operate only on their specific store overrides.                   |
+| VIEWER        | Scoped read  | Read-only dashboards scoped by their token (often brand/store).   |
 
 ### Theme API scope enforcement
 
 Theme endpoints now enforce tenant scope in addition to the minimum role. Brand/store slugs baked into the admin token must match the brand/store being queried or mutated, unless the user is an OWNER/ORG_ADMIN (global) or BRAND_ADMIN (brand-wide).
 
-| Endpoint | Minimum role | Scope behavior |
-| --- | --- | --- |
-| `GET /api/admin/theme` | VIEWER | Requires `brand` query to match the caller's brand; optional `store` must match their store slug (or belong to their brand). |
-| `POST /api/admin/theme` | EDITOR | Caller must have access to the target brand; store overrides require brand match or the exact store slug (for store managers). |
-| `GET /api/admin/theme/configs` | VIEWER | Rejects brand/store filters outside the caller's scope and automatically narrows results to their brand/store when no filters are provided. |
-| `POST /api/admin/theme/config` | EDITOR | Enforces brand + store scope before writing Sanity documents. |
-| `DELETE /api/admin/theme/config/:id` | EDITOR | Loads the target config, verifies ownership, and only then deletes it. |
+| Endpoint                             | Minimum role | Scope behavior                                                                                                                              |
+| ------------------------------------ | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/admin/theme`               | VIEWER       | Requires `brand` query to match the caller's brand; optional `store` must match their store slug (or belong to their brand).                |
+| `POST /api/admin/theme`              | EDITOR       | Caller must have access to the target brand; store overrides require brand match or the exact store slug (for store managers).              |
+| `GET /api/admin/theme/configs`       | VIEWER       | Rejects brand/store filters outside the caller's scope and automatically narrows results to their brand/store when no filters are provided. |
+| `POST /api/admin/theme/config`       | EDITOR       | Enforces brand + store scope before writing Sanity documents.                                                                               |
+| `DELETE /api/admin/theme/config/:id` | EDITOR       | Loads the target config, verifies ownership, and only then deletes it.                                                                      |
 
 Helpers (`ensureBrandScope`/`ensureStoreScope`) wrap these checks, so future theme endpoints inherit the same RBAC guarantees without duplicating logic.
 

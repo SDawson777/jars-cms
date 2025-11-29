@@ -1,4 +1,4 @@
-import { TrafficChart, SalesChart, EngagementChart } from '../components/Charts'
+import {TrafficChart, SalesChart, EngagementChart} from '../components/Charts'
 import Card from '../design-system/Card'
 import Badge from '../design-system/Badge'
 import React, {useEffect, useState} from 'react'
@@ -68,37 +68,41 @@ export default function Dashboard() {
     }
   }, [])
   return (
-    <div style={{padding: 20}}><h1>Dashboard</h1>
-
+    <div style={{padding: 20}}>
+      <h1>Dashboard</h1>
       /* Metrics Overview */
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: 16,
-        marginBottom: 24
-      }}>
-        <Card style={{ padding: 16 }}>
-          <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 4 }}>Daily Active Users</div>
-          <div style={{ fontSize: 24, fontWeight: 600 }}>1,245</div>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: 16,
+          marginBottom: 24,
+        }}
+      >
+        <Card style={{padding: 16}}>
+          <div style={{fontSize: 12, color: '#6B7280', marginBottom: 4}}>Daily Active Users</div>
+          <div style={{fontSize: 24, fontWeight: 600}}>1,245</div>
           <Badge tone="success">+12%</Badge>
         </Card>
-        <Card style={{ padding: 16 }}>
-          <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 4 }}>Conversion Rate</div>
-          <div style={{ fontSize: 24, fontWeight: 600 }}>3.2%</div>
+        <Card style={{padding: 16}}>
+          <div style={{fontSize: 12, color: '#6B7280', marginBottom: 4}}>Conversion Rate</div>
+          <div style={{fontSize: 24, fontWeight: 600}}>3.2%</div>
           <Badge tone="success">+0.4%</Badge>
         </Card>
-        <Card style={{ padding: 16 }}>
-          <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 4 }}>Avg. Order Value</div>
-          <div style={{ fontSize: 24, fontWeight: 600 }}>$58.40</div>
+        <Card style={{padding: 16}}>
+          <div style={{fontSize: 12, color: '#6B7280', marginBottom: 4}}>Avg. Order Value</div>
+          <div style={{fontSize: 24, fontWeight: 600}}>$58.40</div>
           <Badge tone="warn">-2%</Badge>
         </Card>
-        <Card style={{ padding: 16 }}>
-          <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 4 }}>Recalled Products</div>
-          <div style={{
-            fontSize: 24,
-            fontWeight: 600,
-            color: recalledCount && recalledCount > 0 ? '#EF4444' : '#10B981'
-          }}>
+        <Card style={{padding: 16}}>
+          <div style={{fontSize: 12, color: '#6B7280', marginBottom: 4}}>Recalled Products</div>
+          <div
+            style={{
+              fontSize: 24,
+              fontWeight: 600,
+              color: recalledCount && recalledCount > 0 ? '#EF4444' : '#10B981',
+            }}
+          >
             {recalledCount === null ? 'Loading...' : recalledCount}
           </div>
           {recalledCount !== null && (
@@ -108,22 +112,21 @@ export default function Dashboard() {
           )}
         </Card>
       </div>
-
       /* Recharts Visualizations */
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
-        gap: 16,
-        marginBottom: 24
-      }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+          gap: 16,
+          marginBottom: 24,
+        }}
+      >
         <TrafficChart />
         <SalesChart />
       </div>
-
-      <div style={{ marginBottom: 24 }}>
+      <div style={{marginBottom: 24}}>
         <EngagementChart />
       </div>
-
       <div style={{display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12}}>
         <div>
           <h2>Top Articles</h2>

@@ -1,8 +1,8 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, {createContext, useContext, useState, useEffect} from 'react'
 
 const TenantContext = createContext()
 
-export function TenantProvider({ children }) {
+export function TenantProvider({children}) {
   const [tenantId, setTenantId] = useState(null)
 
   useEffect(() => {
@@ -20,11 +20,7 @@ export function TenantProvider({ children }) {
     }
   }, [tenantId])
 
-  return (
-    <TenantContext.Provider value={{ tenantId, setTenantId }}>
-      {children}
-    </TenantContext.Provider>
-  )
+  return <TenantContext.Provider value={{tenantId, setTenantId}}>{children}</TenantContext.Provider>
 }
 
 export function useTenant() {
@@ -36,19 +32,19 @@ export function useTenant() {
 }
 
 export function WorkspaceSelector() {
-  const { tenantId, setTenantId } = useTenant()
+  const {tenantId, setTenantId} = useTenant()
 
   const workspaces = [
-    { id: null, name: 'Global' },
-    { id: 'tenant-a', name: 'Tenant A' },
-    { id: 'tenant-b', name: 'Tenant B' },
-    { id: 'tenant-c', name: 'Tenant C' }
+    {id: null, name: 'Global'},
+    {id: 'tenant-a', name: 'Tenant A'},
+    {id: 'tenant-b', name: 'Tenant B'},
+    {id: 'tenant-c', name: 'Tenant C'},
   ]
 
   return (
     <select
       value={tenantId || ''}
-      onChange={e => setTenantId(e.target.value || null)}
+      onChange={(e) => setTenantId(e.target.value || null)}
       style={{
         padding: '8px 12px',
         border: '1px solid #D1D5DB',
@@ -56,10 +52,10 @@ export function WorkspaceSelector() {
         fontSize: 14,
         background: '#fff',
         cursor: 'pointer',
-        outline: 'none'
+        outline: 'none',
       }}
     >
-      {workspaces.map(ws => (
+      {workspaces.map((ws) => (
         <option key={ws.id || 'global'} value={ws.id || ''}>
           {ws.name}
         </option>

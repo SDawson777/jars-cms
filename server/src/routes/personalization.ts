@@ -10,7 +10,7 @@ personalizationRouter.post('/apply', async (req, res) => {
   try {
     const body = z
       .object({
-        context: z.record(z.any()).optional(),
+        context: z.record(z.string(), z.unknown()).optional(),
         contentType: z.enum(['article', 'deal', 'productCategory']),
         slugs: z.array(z.string()).optional(),
       })

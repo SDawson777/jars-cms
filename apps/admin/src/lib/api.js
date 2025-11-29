@@ -24,7 +24,7 @@ export function apiPost(path, body, {tenantId, credentials = 'include'} = {}) {
   const url = `${API_BASE}${withTenant}`
   return fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {'Content-Type': 'application/json'},
     body: JSON.stringify(body),
     credentials,
   })

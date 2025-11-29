@@ -1,4 +1,8 @@
 import React from 'react'
-export default function TenantsIndex(){
-  return <div style={{padding:24}}><h1>Tenant Manager</h1></div>
+export default function TenantsIndex() {
+  return (
+    <div style={{padding: 24}}>
+      <h1>Tenant Manager</h1>
+    </div>
+  )
 }

@@ -1,0 +1,22 @@
+{
+  "name": "studio",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Nimbus CMS Sanity Studio",
+  "scripts": {
+    "dev": "sanity dev",
+    "build": "sanity build",
+    "deploy": "sanity deploy"
+  },
+  "dependencies": {
+    "@sanity/vision": "^4.18.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "sanity": "^4.18.0",
+    "styled-components": "^6.1.19"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "typescript": "^5.8.3"
+  }
+}

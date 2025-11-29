@@ -14,6 +14,7 @@ import ThemePage from './pages/Theme'
 import Personalization from './pages/Personalization'
 import {AdminProvider} from './lib/adminContext'
 import {TenantProvider, WorkspaceSelector} from './lib/tenantContext'
+import {AiChatWidget} from './components/AiChatWidget'
 
 function App() {
   return (
@@ -30,7 +31,7 @@ function App() {
               }}
             />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginRight: 16 }}>
+          <div style={{display: 'flex', alignItems: 'center', gap: 16, marginRight: 16}}>
             <WorkspaceSelector />
           </div>
           <nav className="nav" aria-label="Main navigation">
@@ -90,6 +91,7 @@ function App() {
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </main>
+        <AiChatWidget />
       </div>
     </BrowserRouter>
   )

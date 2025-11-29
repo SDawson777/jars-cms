@@ -23,7 +23,13 @@ const optionalSlugField = z
   .optional()
 
 const optionalStateField = z
-  .preprocess(preprocessQueryValue, z.string().length(2).regex(/^[a-z]{2}$/i))
+  .preprocess(
+    preprocessQueryValue,
+    z
+      .string()
+      .length(2)
+      .regex(/^[a-z]{2}$/i),
+  )
   .transform((val) => val?.toUpperCase())
   .optional()
 

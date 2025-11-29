@@ -27,10 +27,11 @@ describe('POST /api/admin/upload-logo', () => {
       {id: 'u1', email: 'a@b.com', role: 'EDITOR', brandSlug: 'jars'},
       process.env.JWT_SECRET || 'dev-secret',
     )
-    const res = await withAdminCookies(
-      appRequest().post('/api/admin/upload-logo'),
-      token,
-    ).send({filename: 'logo.png', data: 'data:image/png;base64,AAAA', brand: 'jars'})
+    const res = await withAdminCookies(appRequest().post('/api/admin/upload-logo'), token).send({
+      filename: 'logo.png',
+      data: 'data:image/png;base64,AAAA',
+      brand: 'jars',
+    })
 
     expect(res.status).toBe(200)
     expect(res.body).toHaveProperty('assetId', 'asset-xyz')
@@ -42,10 +43,7 @@ describe('POST /api/admin/upload-logo', () => {
       {id: 'u1', email: 'a@b.com', role: 'EDITOR', brandSlug: 'jars'},
       process.env.JWT_SECRET || 'dev-secret',
     )
-    const res = await withAdminCookies(
-      appRequest().post('/api/admin/upload-logo'),
-      token,
-    ).send({
+    const res = await withAdminCookies(appRequest().post('/api/admin/upload-logo'), token).send({
       filename: 'logo.exe',
       data: 'data:application/octet-stream;base64,AAAA',
       brand: 'jars',
@@ -62,10 +60,11 @@ describe('POST /api/admin/upload-logo', () => {
     )
     const oversized = Buffer.alloc(2 * 1024 * 1024 + 10)
     const payload = `data:image/png;base64,${oversized.toString('base64')}`
-    const res = await withAdminCookies(
-      appRequest().post('/api/admin/upload-logo'),
-      token,
-    ).send({filename: 'logo.png', data: payload, brand: 'jars'})
+    const res = await withAdminCookies(appRequest().post('/api/admin/upload-logo'), token).send({
+      filename: 'logo.png',
+      data: payload,
+      brand: 'jars',
+    })
 
     expect(res.status).toBe(413)
     expect(res.body).toHaveProperty('error', 'FILE_TOO_LARGE')
@@ -76,10 +75,10 @@ describe('POST /api/admin/upload-logo', () => {
       {id: 'u2', email: 'b@c.com', role: 'EDITOR'},
       process.env.JWT_SECRET || 'dev-secret',
     )
-    const res = await withAdminCookies(
-      appRequest().post('/api/admin/upload-logo'),
-      token,
-    ).send({filename: 'logo.png', data: 'data:image/png;base64,AAAA'})
+    const res = await withAdminCookies(appRequest().post('/api/admin/upload-logo'), token).send({
+      filename: 'logo.png',
+      data: 'data:image/png;base64,AAAA',
+    })
 
     expect(res.status).toBe(400)
     expect(res.body).toHaveProperty('error', 'MISSING_BRAND')
@@ -90,10 +89,11 @@ describe('POST /api/admin/upload-logo', () => {
       {id: 'u3', email: 'c@d.com', role: 'EDITOR', brandSlug: 'jars'},
       process.env.JWT_SECRET || 'dev-secret',
     )
-    const res = await withAdminCookies(
-      appRequest().post('/api/admin/upload-logo'),
-      token,
-    ).send({filename: 'logo.png', data: 'data:image/png;base64,AAAA', brand: 'other'})
+    const res = await withAdminCookies(appRequest().post('/api/admin/upload-logo'), token).send({
+      filename: 'logo.png',
+      data: 'data:image/png;base64,AAAA',
+      brand: 'other',
+    })
 
     expect(res.status).toBe(403)
     expect(res.body).toHaveProperty('error', 'FORBIDDEN')

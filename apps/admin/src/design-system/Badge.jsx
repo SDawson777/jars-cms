@@ -1,11 +1,11 @@
 import React from 'react'
 
-export default function Badge({ children, tone = 'info' }) {
+export default function Badge({children, tone = 'info'}) {
   const tones = {
-    info: { bg: '#DBEAFE', color: '#1E40AF' },
-    success: { bg: '#D1FAE5', color: '#065F46' },
-    warn: { bg: '#FEF3C7', color: '#92400E' },
-    error: { bg: '#FEE2E2', color: '#991B1B' }
+    info: {bg: '#DBEAFE', color: '#1E40AF'},
+    success: {bg: '#D1FAE5', color: '#065F46'},
+    warn: {bg: '#FEF3C7', color: '#92400E'},
+    error: {bg: '#FEE2E2', color: '#991B1B'},
   }
 
   const style = tones[tone] || tones.info
@@ -19,7 +19,7 @@ export default function Badge({ children, tone = 'info' }) {
         fontSize: '12px',
         fontWeight: 500,
         background: style.bg,
-        color: style.color
+        color: style.color,
       }}
     >
       {children}

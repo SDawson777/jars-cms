@@ -4,14 +4,14 @@ This document captures the hardening steps that accompany the "FINAL HARDEN + PO
 
 ## Threat model snapshot
 
-| Vector | Mitigation |
-| --- | --- |
-| Credential stuffing against `/admin/login` | Rate limiting (`ADMIN_LOGIN_RATE_LIMIT_*`), bcrypt password hashes, 4h session lifetime, optional brand/store hints to limit scope. |
-| Cross-site request forgery | All state-changing routes require the double-submit CSRF token (`admin_csrf` cookie + `X-CSRF-Token`). The Admin SPA uses `csrfFetch` to attach it automatically. |
-| Lateral movement between tenants | RBAC middleware (`requireRole`) + scope helpers (`ensureBrandScope`, `ensureStoreScope`, `canAccessBrand`, `canAccessStore`) gate every admin route, upload, and recall action. |
-| Asset poisoning via uploads | Logo uploads validate MIME/extension and size (`MAX_LOGO_BYTES`), run through Sanity asset pipelines, and are brand-scoped before writes. |
-| Replay or tampering of analytics ingest | `/analytics/event` requires an HMAC signature per request (`X-Analytics-Key` + `X-Analytics-Signature`). |
-| Scheduler duplication | `ENABLE_COMPLIANCE_SCHEDULER` gate ensures only one worker per cluster runs the compliance snapshot job. Documented runbooks emphasize single-instance deployment. |
+| Vector                                     | Mitigation                                                                                                                                                                      |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Credential stuffing against `/admin/login` | Rate limiting (`ADMIN_LOGIN_RATE_LIMIT_*`), bcrypt password hashes, 4h session lifetime, optional brand/store hints to limit scope.                                             |
+| Cross-site request forgery                 | All state-changing routes require the double-submit CSRF token (`admin_csrf` cookie + `X-CSRF-Token`). The Admin SPA uses `csrfFetch` to attach it automatically.               |
+| Lateral movement between tenants           | RBAC middleware (`requireRole`) + scope helpers (`ensureBrandScope`, `ensureStoreScope`, `canAccessBrand`, `canAccessStore`) gate every admin route, upload, and recall action. |
+| Asset poisoning via uploads                | Logo uploads validate MIME/extension and size (`MAX_LOGO_BYTES`), run through Sanity asset pipelines, and are brand-scoped before writes.                                       |
+| Replay or tampering of analytics ingest    | `/analytics/event` requires an HMAC signature per request (`X-Analytics-Key` + `X-Analytics-Signature`).                                                                        |
+| Scheduler duplication                      | `ENABLE_COMPLIANCE_SCHEDULER` gate ensures only one worker per cluster runs the compliance snapshot job. Documented runbooks emphasize single-instance deployment.              |
 
 ## Authentication & session handling
 
@@ -22,6 +22,7 @@ This document captures the hardening steps that accompany the "FINAL HARDEN + PO
 - To revoke sessions, rotate `JWT_SECRET` or clear cookies via `/admin/logout`.
 
 ### Password storage
+
 - File-based admins (from `config/admins.json`) must include `passwordHash` (bcrypt). Use `npm run admin:hash <password>` helper (see README snippet) or `bcryptjs.hash(password, 12)`.
 - Environment-based fallback reads `ADMIN_PASSWORD` or `ADMIN_PASSWORD_HASH` for the single emergency admin.
 
@@ -42,16 +43,17 @@ This document captures the hardening steps that accompany the "FINAL HARDEN + PO
 
 ## Secrets & environment hygiene
 
-| Variable | Purpose | Notes |
-| --- | --- | --- |
-| `JWT_SECRET` | Signs admin tokens | Rotate quarterly and on incident. Minimum 32 random bytes. |
-| `SANITY_API_TOKEN` | Writes content from server | Scope to the dataset with least privilege (`write`, `create`, `delete`). |
-| `SANITY_PREVIEW_TOKEN` | Draft preview fetches | Treat as read-only; rotate if leaked. |
-| `PREVIEW_SECRET` | Enables preview mode | Only share with trusted frontend deployments. |
-| `ANALYTICS_INGEST_KEY` | Shared key for `/analytics/event` | Comma-separated list supported. Rotate and update clients accordingly. |
-| `ENABLE_COMPLIANCE_SCHEDULER` | Background job flag | Must be `true` on only one instance. |
+| Variable                      | Purpose                           | Notes                                                                    |
+| ----------------------------- | --------------------------------- | ------------------------------------------------------------------------ |
+| `JWT_SECRET`                  | Signs admin tokens                | Rotate quarterly and on incident. Minimum 32 random bytes.               |
+| `SANITY_API_TOKEN`            | Writes content from server        | Scope to the dataset with least privilege (`write`, `create`, `delete`). |
+| `SANITY_PREVIEW_TOKEN`        | Draft preview fetches             | Treat as read-only; rotate if leaked.                                    |
+| `PREVIEW_SECRET`              | Enables preview mode              | Only share with trusted frontend deployments.                            |
+| `ANALYTICS_INGEST_KEY`        | Shared key for `/analytics/event` | Comma-separated list supported. Rotate and update clients accordingly.   |
+| `ENABLE_COMPLIANCE_SCHEDULER` | Background job flag               | Must be `true` on only one instance.                                     |
 
 Additional tips:
+
 - Store secrets in a managed vault (AWS Parameter Store, GCP Secret Manager, HashiCorp Vault). Avoid committing `.env` files.
 - Enable HTTPS everywhere; cookies rely on `secure` flag in production.
 - Prefer separate datasets per environment (dev/staging/prod) to isolate data access.

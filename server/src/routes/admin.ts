@@ -55,12 +55,7 @@ function ensureBrandScope(res: Response, admin: any, brand?: string | null) {
   return false
 }
 
-function ensureStoreScope(
-  res: Response,
-  admin: any,
-  store?: string | null,
-  brand?: string | null,
-) {
+function ensureStoreScope(res: Response, admin: any, store?: string | null, brand?: string | null) {
   if (!store) return true
   if (canAccessStore(admin, store, brand)) return true
   res.status(403).json({error: 'FORBIDDEN'})
@@ -193,10 +188,9 @@ type AnalyticsCacheDoc = {data: any; ts: string}
 
 async function readAnalyticsOverviewCacheDoc(cacheKey: string): Promise<AnalyticsCacheDoc | null> {
   try {
-    const doc = await fetchCMS(
-      '*[_id == $id][0]{payload, ts}',
-      {id: getAnalyticsCacheDocId(cacheKey)},
-    )
+    const doc = await fetchCMS('*[_id == $id][0]{payload, ts}', {
+      id: getAnalyticsCacheDocId(cacheKey),
+    })
     if (!doc || !(doc as any).payload || !(doc as any).ts) return null
     const ts = (doc as any).ts as string
     const payload = JSON.parse((doc as any).payload as string)
@@ -275,11 +269,19 @@ async function computeAnalyticsOverview(
   )
   const recentDays = Math.min(windowDays, Math.max(1, recentDaysRaw))
   const wRecentClicks = resolveNumber(
-    [normalizedQuery.wRecentClicks, settings?.wRecentClicks, process.env.ANALYTICS_WEIGHT_RECENT_CLICKS],
+    [
+      normalizedQuery.wRecentClicks,
+      settings?.wRecentClicks,
+      process.env.ANALYTICS_WEIGHT_RECENT_CLICKS,
+    ],
     2.5,
   )
   const wRecentViews = resolveNumber(
-    [normalizedQuery.wRecentViews, settings?.wRecentViews, process.env.ANALYTICS_WEIGHT_RECENT_VIEWS],
+    [
+      normalizedQuery.wRecentViews,
+      settings?.wRecentViews,
+      process.env.ANALYTICS_WEIGHT_RECENT_VIEWS,
+    ],
     0.2,
   )
   const wHistoricClicks = resolveNumber(
@@ -299,15 +301,27 @@ async function computeAnalyticsOverview(
     0.05,
   )
   const thresholdRising = resolveNumber(
-    [normalizedQuery.thresholdRising, settings?.thresholdRising, process.env.ANALYTICS_THRESHOLD_RISING],
+    [
+      normalizedQuery.thresholdRising,
+      settings?.thresholdRising,
+      process.env.ANALYTICS_THRESHOLD_RISING,
+    ],
     200,
   )
   const thresholdSteady = resolveNumber(
-    [normalizedQuery.thresholdSteady, settings?.thresholdSteady, process.env.ANALYTICS_THRESHOLD_STEADY],
+    [
+      normalizedQuery.thresholdSteady,
+      settings?.thresholdSteady,
+      process.env.ANALYTICS_THRESHOLD_STEADY,
+    ],
     40,
   )
   const thresholdFalling = resolveNumber(
-    [normalizedQuery.thresholdFalling, settings?.thresholdFalling, process.env.ANALYTICS_THRESHOLD_FALLING],
+    [
+      normalizedQuery.thresholdFalling,
+      settings?.thresholdFalling,
+      process.env.ANALYTICS_THRESHOLD_FALLING,
+    ],
     10,
   )
 
@@ -520,13 +534,12 @@ async function writePersistentAnalyticsOverviewCache(cacheKey: string, data: any
 }
 
 function buildComplianceCacheKey(admin: any, types: string[], brandOverride?: string | null) {
-  const normalizedTypes = [...new Set((types || []).map((t) => String(t).trim()).filter(Boolean))].sort()
+  const normalizedTypes = [
+    ...new Set((types || []).map((t) => String(t).trim()).filter(Boolean)),
+  ].sort()
   return JSON.stringify({
     org: admin?.organizationSlug || 'global',
-    brand:
-      typeof brandOverride !== 'undefined'
-        ? brandOverride || null
-        : admin?.brandSlug || null,
+    brand: typeof brandOverride !== 'undefined' ? brandOverride || null : admin?.brandSlug || null,
     types: normalizedTypes,
   })
 }
@@ -569,8 +582,7 @@ function validateLogoUpload(buffer: Buffer, filename: string, mime?: string | nu
   if (!buffer || !buffer.length) return {ok: false, status: 400, error: 'INVALID_FILE'}
   if (!isAllowedLogoType(filename, mime))
     return {ok: false, status: 400, error: 'UNSUPPORTED_FILE_TYPE'}
-  if (buffer.length > MAX_LOGO_BYTES)
-    return {ok: false, status: 413, error: 'FILE_TOO_LARGE'}
+  if (buffer.length > MAX_LOGO_BYTES) return {ok: false, status: 413, error: 'FILE_TOO_LARGE'}
   return {ok: true as const}
 }
 
@@ -587,7 +599,8 @@ try {
 adminRouter.use((req, _res, next) => {
   // Preview gating consistent with content routes; require matching PREVIEW_SECRET.
   const previewSecretEnv = process.env.PREVIEW_SECRET
-  const previewSecretConfigured = typeof previewSecretEnv === 'string' && previewSecretEnv.length > 0
+  const previewSecretConfigured =
+    typeof previewSecretEnv === 'string' && previewSecretEnv.length > 0
   if (!previewSecretConfigured) {
     ;(req as any).preview = false
     return next()
@@ -683,24 +696,9 @@ adminRouter.post('/products/:id/recall', requireRole('EDITOR'), async (req, res)
     const body = z
       .object({
         isRecalled: z.boolean().optional(),
-        recallReason: z
-          .string()
-          .trim()
-          .max(500, 'recallReason too long')
-          .optional()
-          .nullable(),
-        reason: z
-          .string()
-          .trim()
-          .max(500)
-          .optional()
-          .nullable(),
-        operatorReason: z
-          .string()
-          .trim()
-          .max(500)
-          .optional()
-          .nullable(),
+        recallReason: z.string().trim().max(500, 'recallReason too long').optional().nullable(),
+        reason: z.string().trim().max(500).optional().nullable(),
+        operatorReason: z.string().trim().max(500).optional().nullable(),
       })
       .parse(req.body || {})
     const {isRecalled, recallReason, reason, operatorReason} = body
@@ -715,7 +713,9 @@ adminRouter.post('/products/:id/recall', requireRole('EDITOR'), async (req, res)
     const brandSlug = prev?.brand || null
     const storeSlugs = Array.isArray(prev?.stores) ? prev.stores.filter(Boolean) : []
     const hasBrandAccess = !brandSlug || canAccessBrand(admin, brandSlug)
-    const hasStoreAccess = storeSlugs.some((store: string) => canAccessStore(admin, store, brandSlug))
+    const hasStoreAccess = storeSlugs.some((store: string) =>
+      canAccessStore(admin, store, brandSlug),
+    )
     if (!hasBrandAccess && !hasStoreAccess) {
       return res.status(403).json({error: 'FORBIDDEN'})
     }
@@ -1495,13 +1495,11 @@ adminRouter.get('/compliance/overview', requireRole('ORG_ADMIN'), async (req, re
       })
       if (snapshot && (snapshot as any).results) {
         const results = applyStoreFilter((snapshot as any).results)
-        return res
-          .set('X-Compliance-Cache', 'SNAPSHOT')
-          .json({
-            results,
-            snapshotTs: (snapshot as any).ts,
-            snapshotId,
-          })
+        return res.set('X-Compliance-Cache', 'SNAPSHOT').json({
+          results,
+          snapshotTs: (snapshot as any).ts,
+          snapshotId,
+        })
       }
     } catch (_e) {
       // fall back to live compute
@@ -1533,19 +1531,9 @@ adminRouter.post('/compliance/snapshot', requireRole('ORG_ADMIN'), async (req, r
   try {
     const payload = z
       .object({
-        org: z
-          .string()
-          .trim()
-          .min(1)
-          .optional(),
-        brand: z
-          .string()
-          .trim()
-          .min(1)
-          .optional(),
-        types: z
-          .array(z.enum(['terms', 'privacy', 'accessibility', 'ageGate']))
-          .optional(),
+        org: z.string().trim().min(1).optional(),
+        brand: z.string().trim().min(1).optional(),
+        types: z.array(z.enum(['terms', 'privacy', 'accessibility', 'ageGate'])).optional(),
       })
       .parse(req.body || {})
     const admin = (req as any).admin
@@ -1779,10 +1767,10 @@ adminRouter.post('/upload-logo', requireRole('EDITOR'), async (req, res) => {
         brand: z.string().trim().min(1).optional(),
       })
       .parse(req.body || {})
-  const brandResult = resolveScopedBrand(req, brand)
-  if (!brandResult.ok) return res.status(brandResult.status).json({error: brandResult.error})
-  const scopedBrand = brandResult.brand
-  req.log.info('admin.upload_logo', {brand: scopedBrand, admin: (req as any).admin?.email})
+    const brandResult = resolveScopedBrand(req, brand)
+    if (!brandResult.ok) return res.status(brandResult.status).json({error: brandResult.error})
+    const scopedBrand = brandResult.brand
+    req.log.info('admin.upload_logo', {brand: scopedBrand, admin: (req as any).admin?.email})
     const client = createWriteClient()
     // strip data URL prefix if present
     const mime = extractMimeFromDataUrl(typeof data === 'string' ? data : '')

@@ -111,7 +111,15 @@ export default function Personalization() {
                     <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
                       <strong>{r.name}</strong>
                       {!r.enabled && (
-                        <span style={{fontSize: 12, color: '#b45309', background: '#fef3c7', padding: '0 6px', borderRadius: 999}}>
+                        <span
+                          style={{
+                            fontSize: 12,
+                            color: '#b45309',
+                            background: '#fef3c7',
+                            padding: '0 6px',
+                            borderRadius: 999,
+                          }}
+                        >
                           Disabled
                         </span>
                       )}
@@ -119,7 +127,9 @@ export default function Personalization() {
                     {r.description && <small style={{display: 'block'}}>{r.description}</small>}
                     <div style={{marginTop: 4}}>
                       <strong>Conditions:</strong>{' '}
-                      {(r.conditions || []).map((c) => `${c.key} ${c.operator} ${c.value}`).join('; ') || '—'}
+                      {(r.conditions || [])
+                        .map((c) => `${c.key} ${c.operator} ${c.value}`)
+                        .join('; ') || '—'}
                     </div>
                     <div>
                       <strong>Actions:</strong>{' '}
@@ -149,7 +159,9 @@ export default function Personalization() {
             <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
               <h2 style={{margin: 0}}>Simulator</h2>
               {!canManage && (
-                <span style={{fontSize: 12, color: '#b91c1c'}}>Editor role required to simulate</span>
+                <span style={{fontSize: 12, color: '#b91c1c'}}>
+                  Editor role required to simulate
+                </span>
               )}
             </div>
             {['preference', 'location', 'timeOfDay', 'lastPurchaseDaysAgo'].map((field) => (
@@ -171,9 +183,7 @@ export default function Personalization() {
                 {simulateLoading ? 'Running…' : 'Simulate'}
               </button>
             </div>
-            {simulateError && (
-              <div style={{marginTop: 8, color: '#b91c1c'}}>{simulateError}</div>
-            )}
+            {simulateError && <div style={{marginTop: 8, color: '#b91c1c'}}>{simulateError}</div>}
             <div style={{marginTop: 16}}>
               <h3>Result</h3>
               <pre style={{whiteSpace: 'pre-wrap'}}>

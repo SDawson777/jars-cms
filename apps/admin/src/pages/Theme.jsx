@@ -143,10 +143,8 @@ export default function ThemePage() {
     async (options = {}) => {
       const page = options.page ?? configsPage.page ?? 1
       const perPage = options.perPage ?? configsPage.perPage ?? 10
-      const brandOverride =
-        typeof options.brand === 'string' ? options.brand.trim() : undefined
-      const storeOverride =
-        typeof options.store === 'string' ? options.store.trim() : undefined
+      const brandOverride = typeof options.brand === 'string' ? options.brand.trim() : undefined
+      const storeOverride = typeof options.store === 'string' ? options.store.trim() : undefined
       const brandFilter = (brandOverride || brandScope || brandRef.current || brand || '').trim()
       const storeFilterOpt = (storeOverride || storeFilter || '').trim()
 
@@ -355,8 +353,7 @@ export default function ThemePage() {
     const hasAllowedExt = ext ? ALLOWED_LOGO_EXTENSIONS.includes(ext) : false
     const hasAllowedMime = file.type ? ALLOWED_LOGO_TYPES.includes(file.type) : false
     const errorsList = []
-    if (!hasAllowedExt && !hasAllowedMime)
-      errorsList.push('Logo must be PNG, JPG, SVG, or WebP.')
+    if (!hasAllowedExt && !hasAllowedMime) errorsList.push('Logo must be PNG, JPG, SVG, or WebP.')
     if (file.size > MAX_LOGO_BYTES)
       errorsList.push(`Logo must be ${formatBytes(MAX_LOGO_BYTES)} or smaller.`)
     return errorsList
@@ -559,9 +556,11 @@ export default function ThemePage() {
             Loading configs…
           </div>
         )}
-        {!configsError && !configsLoading && (!Array.isArray(configsPage.items) || configsPage.items.length === 0) && (
-          <div style={{marginTop: 12}}>No configs found for this scope.</div>
-        )}
+        {!configsError &&
+          !configsLoading &&
+          (!Array.isArray(configsPage.items) || configsPage.items.length === 0) && (
+            <div style={{marginTop: 12}}>No configs found for this scope.</div>
+          )}
         {!configsError && Array.isArray(configsPage.items) && configsPage.items.length > 0 && (
           <>
             <table style={{width: '100%', borderCollapse: 'collapse', marginTop: 12}}>
@@ -637,7 +636,9 @@ export default function ThemePage() {
                 Page {configsPage.page} • Showing {configsPage.perPage} per page
               </span>
               <button
-                disabled={configsPage.page * configsPage.perPage >= configsPage.total || configsLoading}
+                disabled={
+                  configsPage.page * configsPage.perPage >= configsPage.total || configsLoading
+                }
                 onClick={() =>
                   loadConfigs({
                     page: configsPage.page + 1,

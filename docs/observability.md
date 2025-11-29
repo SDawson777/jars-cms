@@ -165,7 +165,7 @@ If you enable `LOG_LEVEL=debug`, you may also see additional internal events (ca
 
 ### On-call runbook (example)
 
-When you are on-call and an alert fires (for example, "5xx rate > 2% on /content/*"):
+When you are on-call and an alert fires (for example, "5xx rate > 2% on /content/\*"):
 
 1. Check recent `request.complete` logs for the affected path and confirm whether the spike is real or a false positive.
 2. Use `requestId` from a few failing requests to gather all related logs and identify common patterns (tenant, region, downstream service).

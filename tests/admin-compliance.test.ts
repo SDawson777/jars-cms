@@ -68,7 +68,10 @@ describe('GET /api/admin/compliance/overview', () => {
       .spyOn(complianceLib, 'computeCompliance')
       .mockResolvedValueOnce([{storeSlug: 'store-a', complianceScore: 100} as any])
 
-    const token = jwt.sign({id: 'cache', email: 'cache@example.com', role: 'ORG_ADMIN'}, process.env.JWT_SECRET)
+    const token = jwt.sign(
+      {id: 'cache', email: 'cache@example.com', role: 'ORG_ADMIN'},
+      process.env.JWT_SECRET,
+    )
 
     const first = await withAdminCookies(appRequest().get('/api/admin/compliance/overview'), token)
     expect(first.status).toBe(200)
@@ -85,7 +88,10 @@ describe('GET /api/admin/compliance/overview', () => {
   })
 
   it('enforces brand scope when brand query param is provided', async () => {
-    const token = jwt.sign({id: 'brand-admin', email: 'b@a.com', role: 'BRAND_ADMIN', brandSlug: 'alpha'}, process.env.JWT_SECRET)
+    const token = jwt.sign(
+      {id: 'brand-admin', email: 'b@a.com', role: 'BRAND_ADMIN', brandSlug: 'alpha'},
+      process.env.JWT_SECRET,
+    )
     const res = await (request(app) as any)
       .get('/api/admin/compliance/overview')
       .query({brand: 'beta'})
@@ -95,13 +101,14 @@ describe('GET /api/admin/compliance/overview', () => {
 
   it('filters results by store query when scoped', async () => {
     fetchCMSMock.mockResolvedValueOnce(null)
-    const computeSpy = vi
-      .spyOn(complianceLib, 'computeCompliance')
-      .mockResolvedValueOnce([
-        {storeSlug: 'store-a', complianceScore: 100},
-        {storeSlug: 'store-b', complianceScore: 80},
-      ] as any)
-    const token = jwt.sign({id: 'org', email: 'org@example.com', role: 'ORG_ADMIN'}, process.env.JWT_SECRET)
+    const computeSpy = vi.spyOn(complianceLib, 'computeCompliance').mockResolvedValueOnce([
+      {storeSlug: 'store-a', complianceScore: 100},
+      {storeSlug: 'store-b', complianceScore: 80},
+    ] as any)
+    const token = jwt.sign(
+      {id: 'org', email: 'org@example.com', role: 'ORG_ADMIN'},
+      process.env.JWT_SECRET,
+    )
     const res = await (request(app) as any)
       .get('/api/admin/compliance/overview')
       .query({store: 'store-b'})
