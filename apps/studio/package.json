@@ -5,7 +5,7 @@
   "description": "Nimbus CMS Sanity Studio",
   "scripts": {
     "dev": "sanity dev",
-    "build": "sanity build",
+    "build": "sanity build --no-auto-update",
     "deploy": "sanity deploy"
   },
   "dependencies": {
@@ -13,7 +13,8 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "sanity": "^4.18.0",
-    "styled-components": "^6.1.19"
+    "styled-components": "^6.1.19",
+    "@sanity/icons": "^2.11.2"
   },
   "devDependencies": {
     "@types/react": "^18.2.0",

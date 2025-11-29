@@ -58,28 +58,37 @@ git clone https://github.com/SDawson777/nimbus-cms.git
 cd nimbus-cms
 ## Monorepo & Deployments
 
-- API (Railway):
-      - Source: `server/`
-      - Build: `pnpm --filter server build` (TypeScript → `server/dist`)
-      - Start: `pnpm --filter server start`
-      - Env (Railway):
-            - `JWT_SECRET` (>=24 chars, non-placeholder)
-            - `CORS_ORIGINS` (comma-separated, e.g. `https://nimbus-cms-admin.vercel.app,https://nimbus-cms.vercel.app`)
-            - Optional: `JSON_BODY_LIMIT`, `ENABLE_COMPLIANCE_SCHEDULER`
+### API (Railway)
+- Source: `server/`
+- Build (local): `npm --prefix server run build` (TypeScript → `server/dist`)
+- Start (local): `npm --prefix server run start`
+- Docker: Uses multi-stage `server/Dockerfile` (builds admin + server)
+- Env (Railway):
+      - `JWT_SECRET` (>=24 chars, non-placeholder)
+      - `CORS_ORIGINS` (comma-separated, e.g. `https://nimbus-cms-admin.vercel.app,https://nimbus-cms.vercel.app`)
+      - Optional: `JSON_BODY_LIMIT`, `ENABLE_COMPLIANCE_SCHEDULER`
 
-- Admin UI (Vercel + Vite):
-      - Root Directory: `apps/admin`
-      - Build Command: `pnpm --filter admin build`
+### Admin UI (Vercel + Vite)
+- Preferred: Set Root Directory to `apps/admin`
+- Install Command: `npm ci`
+- Build Command: `npm run build`
+- Output Directory: `dist`
+- Env: `VITE_NIMBUS_API_URL` → Railway API base (e.g. `https://<railway-app>.up.railway.app`)
+- Fallback (if root deploy forced):
+      - Build Command: `npm run vercel-build-admin`
       - Output Directory: `dist`
-      - Env (Vercel Project):
-            - `VITE_NIMBUS_API_URL` → Railway API base (e.g. `https://<railway-app>.up.railway.app`)
 
-- CMS Studio (Vercel + Sanity):
-      - Root Directory: `apps/studio`
-      - Build Command: `pnpm --filter studio build` (Sanity v4)
-      - Env (Vercel Project):
-            - `SANITY_STUDIO_PROJECT_ID` → `ygbu28p2`
-            - `SANITY_STUDIO_DATASET` → `production`
+### CMS Studio (Vercel + Sanity)
+- Preferred: Root Directory `apps/studio`
+- Install Command: `npm ci`
+- Build Command: `npm run build` (`sanity build --no-auto-update`)
+- Output Directory: `dist`
+- Env:
+      - `SANITY_STUDIO_PROJECT_ID` → `ygbu28p2`
+      - `SANITY_STUDIO_DATASET` → `production`
+- Fallback (root deploy):
+      - Build Command: `npm run vercel-build-studio`
+      - Output Directory: `dist`
 
 ## Project Mapping
 
