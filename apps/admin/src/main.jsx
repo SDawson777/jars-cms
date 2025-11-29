@@ -9,9 +9,11 @@ import Faqs from './pages/Faqs'
 import Legal from './pages/Legal'
 import Analytics from './pages/Analytics'
 import AnalyticsSettings from './pages/AnalyticsSettings'
+import Settings from './pages/Settings'
 import ThemePage from './pages/Theme'
 import Personalization from './pages/Personalization'
 import {AdminProvider} from './lib/adminContext'
+import {TenantProvider, WorkspaceSelector} from './lib/tenantContext'
 
 function App() {
   return (
@@ -28,6 +30,9 @@ function App() {
               }}
             />
           </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginRight: 16 }}>
+            <WorkspaceSelector />
+          </div>
           <nav className="nav" aria-label="Main navigation">
             <Link to="/dashboard" className="card">
               Dashboard
@@ -35,7 +40,7 @@ function App() {
             <Link to="/analytics" className="card">
               Analytics
             </Link>
-            <Link to="/analytics/settings" className="card">
+            <Link to="/settings" className="card">
               Settings
             </Link>
             <Link to="/compliance" className="card">
@@ -75,6 +80,7 @@ function App() {
             <Route path="/legal" element={<Legal />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/analytics/settings" element={<AnalyticsSettings />} />
+            <Route path="/settings" element={<Settings />} />
             <Route
               path="/compliance"
               element={React.createElement(require('./pages/Compliance').default)}
@@ -91,6 +97,8 @@ function App() {
 
 createRoot(document.getElementById('root')).render(
   <AdminProvider>
-    <App />
+    <TenantProvider>
+      <App />
+    </TenantProvider>
   </AdminProvider>,
 )
