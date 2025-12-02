@@ -10,9 +10,9 @@ ENV NODE_ENV=production
 # Work in the admin app directory
 WORKDIR /app/apps/admin
 
-# Install admin dependencies from lockfile (deterministic)
-COPY apps/admin/package.json apps/admin/package-lock.json ./
-RUN npm ci --omit=dev
+# Install admin dependencies
+COPY apps/admin/package.json ./
+RUN npm install
 
 # Copy admin source and build
 COPY apps/admin ./

@@ -10,8 +10,8 @@ FROM node:20 AS admin-builder
 WORKDIR /app/apps/admin
 
 # Install Admin SPA dependencies
-COPY apps/admin/package.json apps/admin/package-lock.json ./
-RUN npm ci
+COPY apps/admin/package.json ./
+RUN npm install
 
 # Build Admin SPA
 COPY apps/admin ./

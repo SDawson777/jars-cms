@@ -12,8 +12,6 @@ import AnalyticsSettings from './pages/AnalyticsSettings'
 import Settings from './pages/Settings'
 import ThemePage from './pages/Theme'
 import Personalization from './pages/Personalization'
-import Deals from './pages/Deals'
-import Compliance from './pages/Compliance'
 import {AdminProvider} from './lib/adminContext'
 import {TenantProvider, WorkspaceSelector} from './lib/tenantContext'
 import {AiChatWidget} from './components/AiChatWidget'
@@ -79,12 +77,10 @@ function App() {
             <Route path="/products" element={<Products />} />
             <Route path="/articles" element={<Articles />} />
             <Route path="/faqs" element={<Faqs />} />
-              <Route path="/deals" element={<Deals />} />
             <Route path="/legal" element={<Legal />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/analytics/settings" element={<AnalyticsSettings />} />
             <Route path="/settings" element={<Settings />} />
-              <Route path="/compliance" element={<Compliance />} />
             <Route path="/theme" element={<ThemePage />} />
             <Route path="/personalization" element={<Personalization />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
