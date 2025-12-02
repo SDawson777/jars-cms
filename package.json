@@ -2,6 +2,12 @@
   "name": "nimbus-cms-monorepo",
   "private": true,
   "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/admin",
+    "apps/studio",
+    "server"
+  ]
   "license": "UNLICENSED",
   "description": "Nimbus CMS monorepo: Studio (Vercel/Sanity), Admin SPA (Vercel/Vite), API (Railway/Express)",
   "author": "",
