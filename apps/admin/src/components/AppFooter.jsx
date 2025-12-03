@@ -21,12 +21,18 @@ export default function AppFooter() {
 
   return (
     <footer className="app-footer">
-      <div className="footer-left" role="button" tabIndex={0} onClick={() => setMilitary((m) => !m)} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setMilitary((m) => !m)}>
+      <div
+        className="footer-left"
+        role="button"
+        tabIndex={0}
+        onClick={() => setMilitary((m) => !m)}
+        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setMilitary((m) => !m)}
+      >
         <span className="footer-time-label">{military ? '24h' : '12h'}</span>
         <span className="footer-time-value">{formatTime(now, military)}</span>
       </div>
-      <div className="footer-center">© {new Date().getFullYear()} Nimbus — Protected IP</div>
-      <div className="footer-right">Enterprise grade · Buyer ready</div>
+      <div className="footer-center">© {new Date().getFullYear()} Nimbus</div>
+      <div className="footer-right">Production-ready build</div>
     </footer>
   )
 }

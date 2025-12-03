@@ -99,13 +99,17 @@ export default function Dashboard() {
   const [recalledCount, setRecalledCount] = useState(null)
   // Controls for 3D/4D mode and time slider (default to on for demos unless explicitly disabled).
   const allow3D = import.meta.env.VITE_ENABLE_3D_ANALYTICS !== 'false'
-  const [is3DView, setIs3DView] = useState(false)
+  const [is3DView, setIs3DView] = useState(allow3D)
   const [timeIndex, setTimeIndex] = useState(0)
 
   useEffect(() => {
     let mounted = true
     async function loadRecalled() {
       try {
+        if (!apiBaseUrl()) {
+          setRecalledCount(0)
+          return
+        }
         // use lightweight cached endpoint that returns recalled product count
         const {ok, data} = await apiJson('/api/admin/products/recalled-count', {}, null)
         if (mounted && ok && data)
@@ -184,10 +188,10 @@ export default function Dashboard() {
       <div className="hero-banner">
         <div className="hero-copy">
           <p className="pill">Nimbus Control Center</p>
-          <h1>Executive experience oversight</h1>
+          <h1>Operational analytics cockpit</h1>
           <p>
-            A crisp, enterprise-ready cockpit for engagement, commerce, and compliance intelligence
-            across every property.
+            Production-ready governance for engagement, commerce, and compliance across every surface.
+            Built for real-time operations and buyer handoff without surprises.
           </p>
           <div className="pill-row">
             <span className="pill-badge">99.95% uptime</span>
@@ -223,11 +227,12 @@ export default function Dashboard() {
       >
         <div>
           <p className="section-note" style={{margin: 0}}>
-            Toggle immersive 3D/4D analytics for investor demos and CX reviews.
+            Immersive mode highlights spatial demand (map), content influence (graph), and SKU lift
+            over time (3D bars) so ops teams can replay launches or incidents with investors and CX.
           </p>
           {is3DView && (
             <p className="metric-subtle" style={{margin: 0}}>
-              Scrub through time to replay engagement waves across your surfaces.
+              Use the scrubber to move through drop windows, promos, and regional waves.
             </p>
           )}
         </div>
