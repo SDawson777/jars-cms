@@ -1,4 +1,4 @@
-import React, {useMemo} from 'react'
+import React, {useMemo, useState, useEffect, useRef} from 'react'
 import {createRoot} from 'react-dom/client'
 import {BrowserRouter, Routes, Route, Navigate, Link, useLocation} from 'react-router-dom'
 import Login from './pages/Login'
@@ -22,6 +22,8 @@ import Compliance from './pages/Compliance'
 function AppShell() {
   const {admin, loading} = useAdminGuard()
   const {pathname} = useLocation()
+  const [navOpen, setNavOpen] = useState(false)
+  const navRef = useRef(null)
   const navItems = useMemo(
     () => [
       {path: '/dashboard', label: 'Dashboard'},
@@ -38,41 +40,76 @@ function AppShell() {
     ],
     [],
   )
+
+  useEffect(() => {
+    setNavOpen(false)
+  }, [pathname])
+
+  useEffect(() => {
+    function onClick(e) {
+      if (!navRef.current) return
+      if (!navRef.current.contains(e.target)) {
+        setNavOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onClick)
+    return () => document.removeEventListener('mousedown', onClick)
+  }, [])
+
   return (
     <div className="container" style={{minHeight: '100vh', paddingTop: 8}}>
       <div className="site-top site-header">
-          <div className="brand">
-            <div
-              className="logo"
-              style={{
-                width: '160px',
-                height: 'var(--logo-height)',
-                background: 'var(--accent)',
-                borderRadius: '999px',
-                boxShadow: '0 0 40px rgba(124, 58, 237, 0.45)',
-              }}
-            />
+        <div className="brand">
+          <div
+            className="logo"
+            style={{
+              width: '160px',
+              height: 'var(--logo-height)',
+              background: 'var(--accent)',
+              borderRadius: '999px',
+              boxShadow: '0 0 40px rgba(124, 58, 237, 0.45)',
+            }}
+          />
+          <div className="brand-meta">
+            <p className="brand-kicker">Nimbus CMS Suite</p>
+            <p className="brand-sub">Enterprise control | real-time content | AI concierge</p>
           </div>
-          <div style={{display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'flex-end'}}>
-            <DatasetSelector />
-            <WorkspaceSelector />
-          </div>
-          <nav className="nav" aria-label="Main navigation">
-            {navItems.map((item) => {
-              const active = pathname.startsWith(item.path)
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`card nav-link ${active ? 'active' : ''}`}
-                  aria-current={active ? 'page' : undefined}
-                >
-                  {item.label}
-                </Link>
-              )
-            })}
-          </nav>
         </div>
+        <div className="header-actions">
+          <DatasetSelector />
+          <WorkspaceSelector />
+          <div className="nav-menu" ref={navRef}>
+            <button
+              className="nav-menu__trigger"
+              aria-haspopup="true"
+              aria-expanded={navOpen}
+              onClick={() => setNavOpen((v) => !v)}
+            >
+              Suite Map
+              <span aria-hidden="true">⌄</span>
+            </button>
+            <div className={`nav-menu__panel ${navOpen ? 'is-open' : ''}`} role="menu">
+              <div className="nav-menu__grid">
+                {navItems.map((item) => {
+                  const active = pathname.startsWith(item.path)
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      className={`nav-menu__item ${active ? 'is-active' : ''}`}
+                      aria-current={active ? 'page' : undefined}
+                      role="menuitem"
+                    >
+                      <span className="nav-menu__label">{item.label}</span>
+                      <span className="nav-menu__hint">Navigate</span>
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
         <main style={{flex: 1}}>
           <Routes>
             <Route path="/login" element={<Login />} />
