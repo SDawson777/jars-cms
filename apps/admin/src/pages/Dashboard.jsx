@@ -2,19 +2,9 @@ import {TrafficChart, SalesChart, EngagementChart} from '../components/Charts'
 import Card from '../design-system/Card'
 import Badge from '../design-system/Badge'
 import React, {useEffect, useState} from 'react'
+// Use ESM imports so Vite can bundle Chart.js and react-chartjs-2 correctly.
+import ChartJS from 'chart.js/auto'
 import {Line} from 'react-chartjs-2'
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-} from 'chart.js'
-
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
 
 export default function Dashboard() {
   const [data, setData] = useState(null)
@@ -48,7 +38,8 @@ export default function Dashboard() {
   const productSeries = (data && data.productSeries) || []
   const stores = (data && data.storeEngagement) || []
   const demand = (data && data.productDemand) || []
-  const [recalledCount, setRecalledCount] = (React.useState < number) | (null > null)
+  // Track number of recalled products; start at null until loaded.
+  const [recalledCount, setRecalledCount] = React.useState(null)
 
   React.useEffect(() => {
     let mounted = true

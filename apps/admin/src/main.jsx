@@ -15,6 +15,8 @@ import Personalization from './pages/Personalization'
 import {AdminProvider} from './lib/adminContext'
 import {TenantProvider, WorkspaceSelector} from './lib/tenantContext'
 import {AiChatWidget} from './components/AiChatWidget'
+import Deals from './pages/Deals'
+import Compliance from './pages/Compliance'
 
 function App() {
   return (
@@ -77,6 +79,9 @@ function App() {
             <Route path="/products" element={<Products />} />
             <Route path="/articles" element={<Articles />} />
             <Route path="/faqs" element={<Faqs />} />
+            {/* Use statically imported components for Deals and Compliance to avoid require() */}
+            <Route path="/deals" element={<Deals />} />
+            <Route path="/compliance" element={<Compliance />} />
             <Route path="/legal" element={<Legal />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/analytics/settings" element={<AnalyticsSettings />} />
