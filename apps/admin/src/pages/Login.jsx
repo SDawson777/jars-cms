@@ -1,6 +1,7 @@
 import React, {useState} from 'react'
 import {useNavigate} from 'react-router-dom'
 import {useAdmin} from '../lib/adminContext'
+import {safeJson} from '../lib/safeJson'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -20,8 +21,8 @@ export default function Login() {
         credentials: 'include',
       })
       if (!res.ok) {
-        const body = await res.json()
-        setError(body.error || 'Login failed')
+        const body = await safeJson(res, {})
+        setError(body?.error || 'Login failed')
         return
       }
       await refreshAdmin()

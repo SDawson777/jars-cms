@@ -1,4 +1,5 @@
 import React, {createContext, useContext, useEffect, useMemo, useState, useCallback} from 'react'
+import {safeJson} from './safeJson'
 
 const ROLE_ORDER = {
   OWNER: 6,
@@ -61,12 +62,12 @@ export function AdminProvider({children}) {
           setAdmin(null)
           setError(null)
         } else {
-          const body = await res.json().catch(() => ({}))
-          setError(body.error || 'Unable to fetch admin metadata')
+          const body = await safeJson(res, {})
+          setError(body?.error || 'Unable to fetch admin metadata')
         }
         return
       }
-      const payload = await res.json().catch(() => ({}))
+      const payload = await safeJson(res, {})
       setAdmin(payload?.admin || null)
     } catch (err) {
       setError('Network error while loading admin metadata')

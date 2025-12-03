@@ -4,23 +4,13 @@ import React, {useEffect, useState} from 'react'
 // Use ESM imports so Vite can bundle Chart.js and react-chartjs-2 correctly.
 import ChartJS from 'chart.js/auto'
 import {Line} from 'react-chartjs-2'
+import {safeJson} from '../lib/safeJson'
 
 export default function Dashboard() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   // Track number of recalled products; start at null until loaded.
   const [recalledCount, setRecalledCount] = useState(null)
-
-  const parseJsonSoft = async (res) => {
-    const contentType = res.headers.get('content-type') || ''
-    if (contentType.includes('application/json')) {
-      return res.json().catch(() => null)
-    }
-    // Avoid noisy SyntaxErrors from HTML fallbacks; surface a gentle console warning instead.
-    const preview = (await res.text().catch(() => '')).slice(0, 120)
-    console.warn('Unexpected non-JSON response', {contentType, preview})
-    return null
-  }
 
   useEffect(() => {
     let mounted = true
@@ -29,7 +19,7 @@ export default function Dashboard() {
         // use lightweight cached endpoint that returns recalled product count
         const res = await fetch('/api/admin/products/recalled-count', {credentials: 'include'})
         if (!res.ok) return
-        const json = await parseJsonSoft(res)
+        const json = await safeJson(res)
         if (mounted && json) setRecalledCount(typeof json.count === 'number' ? json.count : 0)
       } catch (e) {
         // ignore
@@ -47,7 +37,7 @@ export default function Dashboard() {
       try {
         const res = await fetch('/api/admin/analytics/overview', {credentials: 'include'})
         if (!res.ok) return
-        const json = await parseJsonSoft(res)
+        const json = await safeJson(res)
         if (mounted && json) setData(json)
       } catch (err) {
         console.error(err)

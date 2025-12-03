@@ -1,6 +1,6 @@
-import React from 'react'
+import React, {useMemo} from 'react'
 import {createRoot} from 'react-dom/client'
-import {BrowserRouter, Routes, Route, Navigate, Link} from 'react-router-dom'
+import {BrowserRouter, Routes, Route, Navigate, Link, useLocation} from 'react-router-dom'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Products from './pages/Products'
@@ -18,11 +18,27 @@ import {AiChatWidget} from './components/AiChatWidget'
 import Deals from './pages/Deals'
 import Compliance from './pages/Compliance'
 
-function App() {
+function AppShell() {
+  const {pathname} = useLocation()
+  const navItems = useMemo(
+    () => [
+      {path: '/dashboard', label: 'Dashboard'},
+      {path: '/analytics', label: 'Analytics'},
+      {path: '/settings', label: 'Settings'},
+      {path: '/compliance', label: 'Compliance'},
+      {path: '/products', label: 'Products'},
+      {path: '/articles', label: 'Articles'},
+      {path: '/faqs', label: 'FAQs'},
+      {path: '/deals', label: 'Deals'},
+      {path: '/legal', label: 'Legal'},
+      {path: '/theme', label: 'Theme'},
+      {path: '/personalization', label: 'Personalization'},
+    ],
+    [],
+  )
   return (
-    <BrowserRouter>
-      <div className="container" style={{minHeight: '100vh', paddingTop: 8}}>
-        <div className="site-top site-header">
+    <div className="container" style={{minHeight: '100vh', paddingTop: 8}}>
+      <div className="site-top site-header">
           <div className="brand">
             <div
               className="logo"
@@ -39,39 +55,19 @@ function App() {
             <WorkspaceSelector />
           </div>
           <nav className="nav" aria-label="Main navigation">
-            <Link to="/dashboard" className="card">
-              Dashboard
-            </Link>
-            <Link to="/analytics" className="card">
-              Analytics
-            </Link>
-            <Link to="/settings" className="card">
-              Settings
-            </Link>
-            <Link to="/compliance" className="card">
-              Compliance
-            </Link>
-            <Link to="/products" className="card">
-              Products
-            </Link>
-            <Link to="/articles" className="card">
-              Articles
-            </Link>
-            <Link to="/faqs" className="card">
-              FAQs
-            </Link>
-            <Link to="/deals" className="card">
-              Deals
-            </Link>
-            <Link to="/legal" className="card">
-              Legal
-            </Link>
-            <Link to="/theme" className="card">
-              Theme
-            </Link>
-            <Link to="/personalization" className="card">
-              Personalization
-            </Link>
+            {navItems.map((item) => {
+              const active = pathname.startsWith(item.path)
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`card nav-link ${active ? 'active' : ''}`}
+                  aria-current={active ? 'page' : undefined}
+                >
+                  {item.label}
+                </Link>
+              )
+            })}
           </nav>
         </div>
         <main style={{flex: 1}}>
@@ -95,6 +91,13 @@ function App() {
         </main>
         <AiChatWidget />
       </div>
+  )
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AppShell />
     </BrowserRouter>
   )
 }
@@ -105,4 +108,4 @@ createRoot(document.getElementById('root')).render(
       <App />
     </TenantProvider>
   </AdminProvider>,
-)
+);
