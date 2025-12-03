@@ -76,7 +76,12 @@ export default function Login() {
       <form onSubmit={submit} style={{display: 'grid', gap: '14px'}}>
         <label style={{display: 'grid', gap: '6px'}}>
           <span>Email</span>
-          <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder={TEST_USER.email} />
+          <input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder={TEST_USER.email}
+            autoComplete="username"
+          />
         </label>
         <label style={{display: 'grid', gap: '6px'}}>
           <span>Password</span>
@@ -85,6 +90,7 @@ export default function Login() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder={TEST_USER.password}
+            autoComplete="current-password"
           />
         </label>
         <div style={{display: 'flex', gap: 10, alignItems: 'center'}}>
