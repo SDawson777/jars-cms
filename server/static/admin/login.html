@@ -52,8 +52,14 @@
         <h2>Admin login</h2>
         <p class="hint">Enter your email and password to access the admin area.</p>
         <form id="login">
-          <input type="email" name="email" placeholder="Email" required />
-          <input type="password" name="password" placeholder="Password" required />
+          <input type="email" name="email" placeholder="Email" required autocomplete="username" />
+          <input
+            type="password"
+            name="password"
+            placeholder="Password"
+            required
+            autocomplete="current-password"
+          />
           <button type="submit">Sign in</button>
         </form>
         <p id="error" class="hint"></p>
