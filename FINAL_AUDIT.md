@@ -34,4 +34,4 @@
 4. **Security regression tests**: add auth/CSRF/CORS automated checks and basic integration tests for login, preferences, and analytics endpoints.
 5. **Legal content check**: publish finalized Terms/Privacy/Data & AI usage pages via Studio content to ensure buyer-ready disclosures.
 
-**Current readiness**: 96/100 with the above operational steps outstanding.
+**Current readiness**: 94/100 — operational risk remains until Vercel/Railway env variables and CORS allowlists are finalized and verified against banner/login/weather flows.
