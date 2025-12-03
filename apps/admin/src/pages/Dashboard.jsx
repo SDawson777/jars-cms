@@ -416,7 +416,6 @@ export default function Dashboard() {
           <p className="section-note" style={{margin: 0}}>
             Tap the star to favorite and use the tiny arrows to reorder your core widgets. Full layout controls live in Settings.
           </p>
-          <p className="metric-subtle" style={{margin: 0}}>2D analytics only—fast, animated, and buyer-ready.</p>
         </div>
         {savingLayout && <span className="metric-subtle">Saving…</span>}
       </div>
