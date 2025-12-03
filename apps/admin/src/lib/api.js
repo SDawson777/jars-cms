@@ -3,7 +3,8 @@ import {getCsrfToken} from './csrf'
 
 // Normalize API base so preview envs that include trailing API segments don't double-prefix routes.
 // If a full path like https://host/api/v1/nimbus is provided, we collapse to the origin to avoid
-// generating /api/v1/nimbus/api/... URLs that break CORS and auth handshakes.
+// generating /api/v1/nimbus/api/... URLs that break CORS and auth handshakes. Always enforce an /api
+// suffix so downstream calls consistently target API endpoints.
 const RAW_API_BASE = (import.meta.env.VITE_NIMBUS_API_URL || '').trim()
 
 function normalizeApiBase(raw) {
@@ -21,13 +22,20 @@ function normalizeApiBase(raw) {
 }
 
 const API_BASE = normalizeApiBase(RAW_API_BASE)
+
+function withApiSuffix(base) {
+  const trimmed = base.replace(/\/$/, '')
+  return trimmed ? `${trimmed}/api` : '/api'
+}
+
+const API_ROOT = withApiSuffix(API_BASE)
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
 
 function buildUrl(path = '') {
-  if (!path) return API_BASE || '/'
+  if (!path) return API_ROOT
   if (path.startsWith('http://') || path.startsWith('https://')) return path
   const normalized = path.startsWith('/') ? path : `/${path}`
-  return `${API_BASE}${normalized}`
+  return `${API_ROOT}${normalized}`
 }
 
 export async function apiFetch(path, options = {}) {

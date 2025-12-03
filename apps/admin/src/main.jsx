@@ -20,7 +20,7 @@ import Deals from './pages/Deals'
 import Compliance from './pages/Compliance'
 import AppErrorBoundary from './components/AppErrorBoundary'
 import AppFooter from './components/AppFooter'
-import AdminBanner from './components/AdminBanner'
+import WelcomeBar from './components/WelcomeBar'
 import {NotificationProvider} from './components/NotificationCenter'
 import HeatmapPage from './pages/Heatmap'
 import {AnimatePresence, motion} from 'framer-motion'
@@ -133,7 +133,7 @@ function AppShell() {
       </div>
       {!isLogin && admin && (
         <div className="banner-shell" aria-live="polite">
-          <AdminBanner />
+          <WelcomeBar />
         </div>
       )}
       <main style={{flex: 1}}>

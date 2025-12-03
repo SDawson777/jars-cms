@@ -1850,27 +1850,32 @@ adminRouter.post(
 )
 
 // Lightweight banner data for the admin chrome (welcome, weather, ticker)
-adminRouter.get('/banner', (req: any, res) => {
+adminRouter.get('/banner', async (req: any, res) => {
   const admin = req.admin || {}
   const fetchFn: any = (globalThis as any).fetch
-  const weatherApiKey = process.env.OPENWEATHER_API_KEY || process.env.WEATHER_API_KEY
+  const weatherApiKey = process.env.WEATHER_API_KEY || process.env.OPENWEATHER_API_KEY
   const weatherCity = process.env.OPENWEATHER_CITY || 'Detroit,US'
   const weatherUnits = process.env.OPENWEATHER_UNITS || 'imperial'
   const weatherApiUrl =
+    process.env.WEATHER_API_URL ||
     process.env.OPENWEATHER_API_URL ||
     `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(weatherCity)}&units=${encodeURIComponent(weatherUnits)}`
+  const fallbackWeather = {tempF: 72, condition: 'Partly Cloudy', icon: '⛅️', mood: 'cloudy'}
   const fallback = {
     adminName: admin.email || 'Nimbus Admin',
-    weather: {tempF: 72, condition: 'Partly Cloudy', icon: '⛅️', mood: 'cloudy'},
+    weather: fallbackWeather,
     ticker: [
       {label: 'Active users', value: '1,204', delta: 12, direction: 'up'},
       {label: 'Conversion', value: '4.8%', delta: -3, direction: 'down'},
       {label: 'Top store', value: 'Detroit – 8 Mile', delta: 19, direction: 'up'},
     ],
+    analytics: {activeUsers: 234, change: 8.2},
     serverTime: new Date().toISOString(),
+    city: null,
+    region: null,
   }
 
-  if (!weatherApiUrl || !weatherApiKey || !fetchFn) {
+  if (!fetchFn) {
     return res.json(fallback)
   }
 
@@ -1883,27 +1888,41 @@ adminRouter.get('/banner', (req: any, res) => {
     return 'sunny'
   }
 
-  ;(async () => {
-    try {
-      const url = `${weatherApiUrl}${weatherApiUrl.includes('?') ? '&' : '?'}appid=${encodeURIComponent(weatherApiKey)}`
-      const response = await fetchFn(url)
-      if (!response?.ok) return res.json(fallback)
-      const json = await response.json()
-      const tempF = Math.round(json?.main?.temp ?? 72)
-      const condition = json?.weather?.[0]?.main || 'Clear'
-      const mood = normalizeCondition(condition)
-      const icon = mood === 'sunny' ? '☀️' : mood === 'rain' ? '🌧️' : mood === 'storm' ? '⛈️' : mood === 'snow' ? '❄️' : '⛅️'
-      res.json({
-        adminName: admin.email || 'Nimbus Admin',
-        weather: {tempF, condition, icon, mood},
-        ticker: fallback.ticker,
-        serverTime: new Date().toISOString(),
-      })
-    } catch (err) {
-      req.log.warn('banner.weather_fallback', err)
-      res.json(fallback)
+  const clientIp =
+    (req.headers['x-forwarded-for']?.toString().split(',')[0] || req.socket.remoteAddress || '0.0.0.0')?.trim()
+  const result = {...fallback}
+
+  try {
+    const geoRes = await fetchFn(`https://ipapi.co/${encodeURIComponent(clientIp || '0.0.0.0')}/json/`)
+    if (geoRes?.ok) {
+      const geo = await geoRes.json()
+      result.city = geo?.city || result.city
+      result.region = geo?.region || result.region
     }
-  })()
+  } catch (err) {
+    req.log?.debug?.('banner.geo_lookup_failed', err)
+  }
+
+  try {
+    if (weatherApiUrl && weatherApiKey) {
+      const query: string[] = [`appid=${encodeURIComponent(weatherApiKey)}`]
+      if (result.city) query.push(`q=${encodeURIComponent(result.city)}`)
+      const url = `${weatherApiUrl}${weatherApiUrl.includes('?') ? '&' : '?'}${query.join('&')}`
+      const response = await fetchFn(url)
+      if (response?.ok) {
+        const json = await response.json()
+        const tempF = Math.round(json?.main?.temp ?? 72)
+        const condition = json?.weather?.[0]?.description || json?.weather?.[0]?.main || 'Clear'
+        const mood = normalizeCondition(condition)
+        const icon = mood === 'sunny' ? '☀️' : mood === 'rain' ? '🌧️' : mood === 'storm' ? '⛈️' : mood === 'snow' ? '❄️' : '⛅️'
+        result.weather = {tempF, condition, icon, mood}
+      }
+    }
+  } catch (err) {
+    req.log?.warn?.('banner.weather_fallback', err)
+  }
+
+  return res.json(result)
 })
 
 // Dashboard layout preferences per admin
