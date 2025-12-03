@@ -5,7 +5,14 @@ import Input from '../design-system/Input'
 import Select from '../design-system/Select'
 import Button from '../design-system/Button'
 import {useDatasetConfig} from '../lib/datasetContext'
-import {fetchNotificationPrefs, saveNotificationPrefs, DEFAULT_NOTIFICATION_PREFS} from '../lib/preferences'
+import {
+  fetchNotificationPrefs,
+  saveNotificationPrefs,
+  DEFAULT_NOTIFICATION_PREFS,
+  fetchDashboardLayout,
+  saveDashboardLayout,
+  DEFAULT_LAYOUT,
+} from '../lib/preferences'
 
 const UI_STORAGE_KEY = 'nimbus_admin_ui'
 const DEFAULT_UI = {
@@ -82,12 +89,22 @@ export default function Settings() {
 function ExperienceSettings() {
   const [uiPrefs, setUiPrefs] = useState(DEFAULT_UI)
   const [status, setStatus] = useState('')
+  const [layout, setLayout] = useState(DEFAULT_LAYOUT)
+  const [layoutStatus, setLayoutStatus] = useState('')
 
   useEffect(() => {
     const prefs = loadUiPrefs()
     setUiPrefs(prefs)
     applyUiTokens(prefs)
+    ;(async () => {
+      const saved = await fetchDashboardLayout()
+      if (saved?.layout) setLayout(saved.layout)
+    })()
   }, [])
+
+  useEffect(() => {
+    applyUiTokens(uiPrefs)
+  }, [uiPrefs])
 
   function update(key, value) {
     setUiPrefs((prev) => ({...prev, [key]: value}))
@@ -106,6 +123,38 @@ function ExperienceSettings() {
     applyUiTokens(DEFAULT_UI)
     setStatus('Reset to Nimbus defaults')
     setTimeout(() => setStatus(''), 2400)
+  }
+
+  const toggleCard = (id) => {
+    const hidden = new Set(layout.hidden)
+    if (hidden.has(id)) hidden.delete(id)
+    else hidden.add(id)
+    const next = {...layout, hidden: Array.from(hidden)}
+    setLayout(next)
+  }
+
+  const toggleFavorite = (id) => {
+    const favs = new Set(layout.favorites)
+    if (favs.has(id)) favs.delete(id)
+    else favs.add(id)
+    const next = {...layout, favorites: Array.from(favs)}
+    setLayout(next)
+  }
+
+  const moveCard = (id, dir) => {
+    const order = [...layout.order]
+    const idx = order.indexOf(id)
+    const swap = idx + dir
+    if (idx === -1 || swap < 0 || swap >= order.length) return
+    ;[order[idx], order[swap]] = [order[swap], order[idx]]
+    setLayout({...layout, order})
+  }
+
+  async function saveLayoutPrefs() {
+    setLayoutStatus('Saving…')
+    await saveDashboardLayout(layout)
+    setLayoutStatus('Saved')
+    setTimeout(() => setLayoutStatus(''), 2400)
   }
 
   return (
@@ -169,6 +218,47 @@ function ExperienceSettings() {
             Reset
           </Button>
           {status && <span className="status-chip">{status}</span>}
+        </div>
+
+        <div className="divider" />
+
+        <h4>Dashboard layout</h4>
+        <p className="subdued">
+          Choose which widgets show on the dashboard, star your favorites, and reorder them. These settings
+          sync to the dashboard controls.
+        </p>
+
+        <div className="customizer">
+          {layout.order.map((id) => (
+            <div key={id} className="customizer-row">
+              <div>
+                <strong>{id}</strong>
+                <p className="section-note" style={{margin: 0}}>
+                  {DEFAULT_LAYOUT.order.includes(id) ? 'Core widget' : 'Widget'} · Priority and visibility
+                </p>
+              </div>
+              <div className="customizer-actions">
+                <button className="ghost" onClick={() => moveCard(id, -1)} aria-label={`Move ${id} up`}>
+                  ↑
+                </button>
+                <button className="ghost" onClick={() => moveCard(id, 1)} aria-label={`Move ${id} down`}>
+                  ↓
+                </button>
+                <button className="ghost" onClick={() => toggleCard(id)} aria-pressed={!layout.hidden.includes(id)}>
+                  {layout.hidden.includes(id) ? 'Show' : 'Hide'}
+                </button>
+                <button className="ghost" onClick={() => toggleFavorite(id)} aria-pressed={layout.favorites.includes(id)}>
+                  {layout.favorites.includes(id) ? '★' : '☆'}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="action-row">
+          <Button variant="primary" onClick={saveLayoutPrefs}>
+            Save dashboard layout
+          </Button>
+          {layoutStatus && <span className="status-chip">{layoutStatus}</span>}
         </div>
       </div>
 

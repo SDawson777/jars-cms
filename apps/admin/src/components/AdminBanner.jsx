@@ -1,10 +1,10 @@
 import React, {useEffect, useMemo, useState} from 'react'
 import {useAdmin} from '../lib/adminContext'
 import {apiJson, apiBaseUrl} from '../lib/api'
-import {motion, AnimatePresence} from 'framer-motion'
+import {motion} from 'framer-motion'
 
 const FALLBACK_BANNER = {
-  weather: {tempF: 72, condition: 'Partly Cloudy', icon: '⛅️'},
+  weather: {tempF: 72, condition: 'Partly Cloudy', icon: '⛅️', mood: 'cloudy'},
   ticker: [
     {label: 'Active users', value: '1,204', delta: 12, direction: 'up'},
     {label: 'Conversion', value: '4.8%', delta: -3, direction: 'down'},
@@ -23,19 +23,48 @@ export default function AdminBanner() {
   const [banner, setBanner] = useState(FALLBACK_BANNER)
   const [clockFormat, setClockFormat] = useState('24h')
   const [now, setNow] = useState(() => new Date())
+  const tickerItems = useMemo(() => banner.ticker || FALLBACK_BANNER.ticker, [banner])
+
+  const openWeatherToken = import.meta.env.VITE_OPENWEATHER_API_TOKEN
+  const openWeatherCity = import.meta.env.VITE_OPENWEATHER_CITY || 'Detroit,US'
+  const openWeatherUrl =
+    import.meta.env.VITE_OPENWEATHER_API_URL ||
+    `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(openWeatherCity)}&units=imperial&appid=${encodeURIComponent(
+      openWeatherToken || '',
+    )}`
 
   useEffect(() => {
     let mounted = true
     async function load() {
       try {
-        if (!apiBaseUrl()) {
-          setBanner((prev) => ({...prev, adminName: admin?.email || 'Nimbus Admin'}))
-          return
+        // Prefer server banner when API base is configured
+        if (apiBaseUrl()) {
+          const {ok, data} = await apiJson('/api/admin/banner')
+          if (mounted && ok && data) {
+            setBanner({...FALLBACK_BANNER, ...data})
+            return
+          }
         }
-        const {ok, data} = await apiJson('/api/admin/banner')
-        if (mounted && ok && data) {
-          setBanner({...FALLBACK_BANNER, ...data})
+
+        // Client-side preview weather fallback using OpenWeather when API base is absent (e.g., Vercel preview)
+        if (!apiBaseUrl() && openWeatherToken) {
+          const res = await fetch(openWeatherUrl)
+          const json = await res.json().catch(() => null)
+          if (json) {
+            const condition = json?.weather?.[0]?.main || 'Clear'
+            const mood = normalizeCondition(condition)
+            const icon = iconForMood(mood)
+            const tempF = Math.round(json?.main?.temp ?? 72)
+            setBanner({
+              ...FALLBACK_BANNER,
+              adminName: admin?.email || 'Nimbus Admin',
+              weather: {tempF, condition, icon, mood},
+            })
+            return
+          }
         }
+
+        setBanner((prev) => ({...prev, adminName: admin?.email || 'Nimbus Admin'}))
       } catch (e) {
         // ignore and keep fallback
       }
@@ -48,46 +77,73 @@ export default function AdminBanner() {
     }
   }, [admin])
 
-  const tickerItems = useMemo(() => banner.ticker || FALLBACK_BANNER.ticker, [banner])
+  function normalizeCondition(condition) {
+    const text = String(condition || '').toLowerCase()
+    if (text.includes('rain')) return 'rain'
+    if (text.includes('cloud')) return 'cloudy'
+    if (text.includes('storm')) return 'storm'
+    if (text.includes('snow')) return 'snow'
+    return 'sunny'
+  }
+
+  function iconForMood(mood) {
+    switch (mood) {
+      case 'rain':
+        return '🌧️'
+      case 'cloudy':
+        return '⛅️'
+      case 'storm':
+        return '⛈️'
+      case 'snow':
+        return '❄️'
+      default:
+        return '☀️'
+    }
+  }
 
   return (
-    <div className="admin-banner" role="banner" aria-label="Admin welcome and system status">
+    <div
+      className={`admin-banner ${banner.weather?.mood ? `weather-${banner.weather.mood}` : ''}`}
+      role="banner"
+      aria-label="Admin welcome and system status"
+    >
       <div className="banner-left">
         <div className="banner-welcome">Welcome back, {banner.adminName || admin?.email || 'Admin'}</div>
         <div className="banner-weather" aria-label="Current weather">
           <span className="banner-weather__icon" aria-hidden="true">
-            {banner.weather?.icon || '⛅️'}
+            {banner.weather?.icon || iconForMood(banner.weather?.mood)}
           </span>
           <span className="banner-weather__temp">{banner.weather?.tempF ?? 72}°F</span>
           <span className="banner-weather__cond">{banner.weather?.condition || 'Clear'}</span>
         </div>
       </div>
       <div className="banner-center" aria-label="Key momentum metrics">
-        <div className="ticker" role="list">
-          <AnimatePresence initial={false}>
-            {tickerItems.map((item) => (
-              <motion.span
-                layout
-                key={item.label}
-                className="ticker-item"
-                role="listitem"
-                initial={{opacity: 0, y: 6}}
-                animate={{opacity: 1, y: 0}}
-                exit={{opacity: 0, y: -6}}
-                transition={{duration: 0.2}}
-              >
-                <span className="ticker-label">{item.label}:</span>
-                <strong>{item.value}</strong>
-                <span className={item.direction === 'up' ? 'ticker-up' : 'ticker-down'} aria-hidden="true">
-                  {item.direction === 'up' ? '▲' : '▼'} {Math.abs(item.delta)}%
-                </span>
-              </motion.span>
-            ))}
-          </AnimatePresence>
+        <div className="ticker" role="list" aria-live="polite">
+          {[...tickerItems, ...tickerItems].map((item, idx) => (
+            <motion.span
+              layout
+              key={`${item.label}-${idx}`}
+              className="ticker-item"
+              role="listitem"
+              initial={{opacity: 0, y: 6}}
+              animate={{opacity: 1, y: 0}}
+              transition={{duration: 0.3}}
+            >
+              <span className="ticker-label">{item.label}:</span>
+              <strong>{item.value}</strong>
+              <span className={item.direction === 'up' ? 'ticker-up' : 'ticker-down'} aria-hidden="true">
+                {item.direction === 'up' ? '▲' : '▼'} {Math.abs(item.delta)}%
+              </span>
+            </motion.span>
+          ))}
         </div>
       </div>
       <div className="banner-right" aria-label="Clock">
-        <button className="ghost" onClick={() => setClockFormat((f) => (f === '24h' ? '12h' : '24h'))}>
+        <button
+          className="ghost ghost-link"
+          aria-label="Toggle time format"
+          onClick={() => setClockFormat((f) => (f === '24h' ? '12h' : '24h'))}
+        >
           {clockFormat === '24h' ? '24h' : '12h'} · {formatTime(now, clockFormat)}
         </button>
       </div>

@@ -105,6 +105,8 @@ const envOrigins = [
 ].filter(Boolean)
 
 const defaultDevOrigins = ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5174']
+const previewSuffix = process.env.CORS_PREVIEW_SUFFIX || '.vercel.app'
+const allowPreview = process.env.ALLOW_PREVIEW_CORS !== 'false'
 
 let allowedOrigins = Array.from(new Set([...configuredOrigins, ...envOrigins]))
 
@@ -133,6 +135,7 @@ app.use(
           // Allow requests with no origin (server-to-server, curl)
           if (!origin) return callback(null, true)
           if (allowedOrigins.indexOf(origin) !== -1) return callback(null, true)
+          if (allowPreview && origin.endsWith(previewSuffix)) return callback(null, true)
           logger.warn('CORS origin denied', {origin})
           return callback(new Error('CORS origin denied'))
         },

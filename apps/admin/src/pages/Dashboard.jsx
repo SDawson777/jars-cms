@@ -106,7 +106,6 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [recalledCount, setRecalledCount] = useState(null)
   const [layout, setLayout] = useState(DEFAULT_LAYOUT)
-  const [customizing, setCustomizing] = useState(false)
   const [savingLayout, setSavingLayout] = useState(false)
   const notify = useNotify()
 
@@ -152,15 +151,15 @@ export default function Dashboard() {
   }, [])
 
   useEffect(() => {
-    if (!customizing && layout?.favorites?.length) {
+    if (layout?.favorites?.length) {
       notify({
-        title: 'Alerts armed',
-        body: 'Dashboard alerts will mirror your favorites. Adjust in Settings > Alerts.',
+        title: 'Favorites saved',
+        body: 'Alerts mirror your favorites. Adjust ordering with the arrows.',
         tone: 'info',
-        ttl: 3800,
+        ttl: 3200,
       })
     }
-  }, [customizing, layout, notify])
+  }, [layout?.favorites?.length, notify])
 
   const topArticles = (data && data.topArticles) || SAMPLE_OVERVIEW.topArticles
   const topFaqs = (data && data.topFaqs) || SAMPLE_OVERVIEW.topFaqs
@@ -194,13 +193,6 @@ export default function Dashboard() {
     setSavingLayout(true)
     await saveDashboardLayout(next)
     setSavingLayout(false)
-  }
-
-  const toggleCard = (id) => {
-    const hidden = new Set(layout.hidden)
-    if (hidden.has(id)) hidden.delete(id)
-    else hidden.add(id)
-    saveLayout({...layout, hidden: Array.from(hidden)})
   }
 
   const toggleFavorite = (id) => {
@@ -422,48 +414,12 @@ export default function Dashboard() {
       <div className="dashboard-toolbar" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, margin: '12px 0 16px'}}>
         <div>
           <p className="section-note" style={{margin: 0}}>
-            Curate your view: reorder, favorite, and hide cards. Favorites also power alerting.
+            Tap the star to favorite and use the tiny arrows to reorder your core widgets. Full layout controls live in Settings.
           </p>
-          <p className="metric-subtle" style={{margin: 0}}>2D analytics only—fast, animated, and ready for production demos.</p>
+          <p className="metric-subtle" style={{margin: 0}}>2D analytics only—fast, animated, and buyer-ready.</p>
         </div>
-        <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
-          <button
-            onClick={() => setCustomizing((v) => !v)}
-            className="ghost"
-            style={{padding: '0.6rem 1.2rem', borderRadius: '0.9rem', border: '1px solid rgba(255,255,255,0.25)'}}
-          >
-            {customizing ? 'Done' : 'Customize dashboard'}
-          </button>
-          {savingLayout && <span className="metric-subtle">Saving…</span>}
-        </div>
+        {savingLayout && <span className="metric-subtle">Saving…</span>}
       </div>
-
-      {customizing && (
-        <div className="customizer">
-          {layout.order.map((id) => (
-            <div key={id} className="customizer-row">
-              <div>
-                <strong>{id}</strong>
-                <p className="section-note" style={{margin: 0}}>{CARD_COPY[id]}</p>
-              </div>
-              <div className="customizer-actions">
-                <button className="ghost" onClick={() => moveCard(id, -1)} aria-label={`Move ${id} up`}>
-                  ↑
-                </button>
-                <button className="ghost" onClick={() => moveCard(id, 1)} aria-label={`Move ${id} down`}>
-                  ↓
-                </button>
-                <button className="ghost" onClick={() => toggleCard(id)} aria-pressed={!layout.hidden.includes(id)}>
-                  {layout.hidden.includes(id) ? 'Show' : 'Hide'}
-                </button>
-                <button className="ghost" onClick={() => toggleFavorite(id)} aria-pressed={favorites.has(id)}>
-                  {favorites.has(id) ? '★ Favorite' : '☆ Favorite'}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
 
       <div className="metric-grid">
         <div className="metric-card">
@@ -502,9 +458,23 @@ export default function Dashboard() {
         {visibleCards.map((id) => (
           <Card key={id}>
             <div className="card-header">
-              <div className="card-title-row">
+              <div className="card-title-row" style={{gap: 8}}>
                 <h3 style={{margin: 0, fontSize: 16}}>{id.replace(/\b\w/g, (l) => l.toUpperCase())}</h3>
-                {favorites.has(id) && <span className="pill">Favorite</span>}
+                <div className="card-actions" aria-label="Widget controls">
+                  <button
+                    className={`icon-button ${favorites.has(id) ? 'is-active' : ''}`}
+                    aria-label="Toggle favorite"
+                    onClick={() => toggleFavorite(id)}
+                  >
+                    ★
+                  </button>
+                  <button className="icon-button" aria-label="Move up" onClick={() => moveCard(id, -1)}>
+                    ↑
+                  </button>
+                  <button className="icon-button" aria-label="Move down" onClick={() => moveCard(id, 1)}>
+                    ↓
+                  </button>
+                </div>
               </div>
               <p className="section-note" style={{margin: 0}}>{CARD_COPY[id]}</p>
             </div>

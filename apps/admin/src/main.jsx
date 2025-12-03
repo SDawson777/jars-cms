@@ -22,6 +22,7 @@ import AppErrorBoundary from './components/AppErrorBoundary'
 import AppFooter from './components/AppFooter'
 import AdminBanner from './components/AdminBanner'
 import {NotificationProvider} from './components/NotificationCenter'
+import HeatmapPage from './pages/Heatmap'
 
 function AppShell() {
   const {admin, loading} = useAdminGuard()
@@ -41,6 +42,7 @@ function AppShell() {
       {path: '/legal', label: 'Legal'},
       {path: '/theme', label: 'Theme'},
       {path: '/personalization', label: 'Personalization'},
+      {path: '/heatmap', label: 'Heatmap'},
     ],
     [],
   )
@@ -150,6 +152,10 @@ function AppShell() {
             <Route
               path="/analytics"
               element={<ProtectedRoute admin={admin} loading={loading} element={<Analytics />} />}
+            />
+            <Route
+              path="/heatmap"
+              element={<ProtectedRoute admin={admin} loading={loading} element={<HeatmapPage />} />}
             />
             <Route
               path="/analytics/settings"

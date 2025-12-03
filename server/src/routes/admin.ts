@@ -1853,11 +1853,15 @@ adminRouter.post(
 adminRouter.get('/banner', (req: any, res) => {
   const admin = req.admin || {}
   const fetchFn: any = (globalThis as any).fetch
-  const weatherApiUrl = process.env.WEATHER_API_URL
-  const weatherApiKey = process.env.WEATHER_API_KEY
+  const weatherApiKey = process.env.OPENWEATHER_API_KEY || process.env.WEATHER_API_KEY
+  const weatherCity = process.env.OPENWEATHER_CITY || 'Detroit,US'
+  const weatherUnits = process.env.OPENWEATHER_UNITS || 'imperial'
+  const weatherApiUrl =
+    process.env.OPENWEATHER_API_URL ||
+    `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(weatherCity)}&units=${encodeURIComponent(weatherUnits)}`
   const fallback = {
     adminName: admin.email || 'Nimbus Admin',
-    weather: {tempF: 72, condition: 'Partly Cloudy', icon: '⛅️'},
+    weather: {tempF: 72, condition: 'Partly Cloudy', icon: '⛅️', mood: 'cloudy'},
     ticker: [
       {label: 'Active users', value: '1,204', delta: 12, direction: 'up'},
       {label: 'Conversion', value: '4.8%', delta: -3, direction: 'down'},
@@ -1870,18 +1874,28 @@ adminRouter.get('/banner', (req: any, res) => {
     return res.json(fallback)
   }
 
+  function normalizeCondition(condition: string) {
+    const text = (condition || '').toLowerCase()
+    if (text.includes('rain')) return 'rain'
+    if (text.includes('cloud')) return 'cloudy'
+    if (text.includes('storm')) return 'storm'
+    if (text.includes('snow')) return 'snow'
+    return 'sunny'
+  }
+
   ;(async () => {
     try {
-      const url = `${weatherApiUrl}?appid=${encodeURIComponent(weatherApiKey)}&units=imperial`
+      const url = `${weatherApiUrl}${weatherApiUrl.includes('?') ? '&' : '?'}appid=${encodeURIComponent(weatherApiKey)}`
       const response = await fetchFn(url)
       if (!response?.ok) return res.json(fallback)
       const json = await response.json()
       const tempF = Math.round(json?.main?.temp ?? 72)
       const condition = json?.weather?.[0]?.main || 'Clear'
-      const icon = '☁️'
+      const mood = normalizeCondition(condition)
+      const icon = mood === 'sunny' ? '☀️' : mood === 'rain' ? '🌧️' : mood === 'storm' ? '⛈️' : mood === 'snow' ? '❄️' : '⛅️'
       res.json({
         adminName: admin.email || 'Nimbus Admin',
-        weather: {tempF, condition, icon},
+        weather: {tempF, condition, icon, mood},
         ticker: fallback.ticker,
         serverTime: new Date().toISOString(),
       })
