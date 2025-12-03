@@ -9,6 +9,27 @@ import {Line} from 'react-chartjs-2'
 export default function Dashboard() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
+  // Track number of recalled products; start at null until loaded.
+  const [recalledCount, setRecalledCount] = useState(null)
+
+  useEffect(() => {
+    let mounted = true
+    async function loadRecalled() {
+      try {
+        // use lightweight cached endpoint that returns recalled product count
+        const res = await fetch('/api/admin/products/recalled-count', {credentials: 'include'})
+        if (!res.ok) return
+        const json = await res.json()
+        if (mounted) setRecalledCount(typeof json.count === 'number' ? json.count : 0)
+      } catch (e) {
+        // ignore
+      }
+    }
+    loadRecalled()
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   useEffect(() => {
     let mounted = true
@@ -38,27 +59,6 @@ export default function Dashboard() {
   const productSeries = (data && data.productSeries) || []
   const stores = (data && data.storeEngagement) || []
   const demand = (data && data.productDemand) || []
-  // Track number of recalled products; start at null until loaded.
-  const [recalledCount, setRecalledCount] = React.useState(null)
-
-  React.useEffect(() => {
-    let mounted = true
-    async function loadRecalled() {
-      try {
-        // use lightweight cached endpoint that returns recalled product count
-        const res = await fetch('/api/admin/products/recalled-count', {credentials: 'include'})
-        if (!res.ok) return
-        const json = await res.json()
-        if (mounted) setRecalledCount(typeof json.count === 'number' ? json.count : 0)
-      } catch (e) {
-        // ignore
-      }
-    }
-    loadRecalled()
-    return () => {
-      mounted = false
-    }
-  }, [])
   return (
     <div style={{padding: 20}}>
       <h1>Dashboard</h1>
