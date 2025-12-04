@@ -1,3 +1,22 @@
+import React, { useEffect, useState } from "react";
+import { apiJson } from "../lib/api";
+import "./welcome-bar.css";
+
+// Simple arrow icons for up/down metrics
+const UpArrow = () => (
+  <span style={{ color: "#4ade80", fontWeight: 600 }}>▲</span>
+);
+const DownArrow = () => (
+  <span style={{ color: "#f87171", fontWeight: 600 }}>▼</span>
+);
+
+const FALLBACK_BANNER = {
+  weather: { tempF: 72, condition: "Clear" },
+  analytics: { activeUsers: "--", change: null },
+  serverTime: new Date().toISOString(),
+  city: null,
+  region: null,
+};
 import React, { useEffect, useState } from 'react'
 import { apiJson } from '../lib/api'
 import './welcome-bar.css'
@@ -7,27 +26,38 @@ const UpArrow = () => <span style={{ color: '#4ade80', fontWeight: 600 }}>▲</s
 const DownArrow = () => <span style={{ color: '#f87171', fontWeight: 600 }}>▼</span>
 
 export default function WelcomeBar() {
-  const [data, setData] = useState(null)
+  const [data, setData] = useState(FALLBACK_BANNER);
 
   useEffect(() => {
-    let mounted = true
-    apiJson('/api/admin/banner')
+    let mounted = true;
+    apiJson("/admin/banner")
       .then(({ ok, data }) => {
-        if (mounted && ok) setData(data)
+        if (mounted && ok) setData(data || FALLBACK_BANNER);
+        else if (mounted) setData(FALLBACK_BANNER);
       })
-      .catch(() => {})
+      .catch(() => {
+        if (mounted) setData(FALLBACK_BANNER);
+      });
     return () => {
-      mounted = false
-    }
-  }, [])
+      mounted = false;
+    };
+  }, []);
 
+  const now = data?.serverTime ? new Date(data.serverTime) : new Date();
+  const dateStr = now.toLocaleDateString();
+  const timeStr = now.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
   const now = data?.serverTime ? new Date(data.serverTime) : new Date()
   const dateStr = now.toLocaleDateString()
   const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
-  const weatherTemp = Math.round(data?.weather?.tempF ?? 72)
-  const weatherDesc = data?.weather?.condition || 'Clear'
-  const locationLabel = data?.city ? `${data.city}${data.region ? `, ${data.region}` : ''}` : null
+  const weatherTemp = Math.round(data?.weather?.tempF ?? 72);
+  const weatherDesc = data?.weather?.condition || "Clear";
+  const locationLabel = data?.city
+    ? `${data.city}${data.region ? `, ${data.region}` : ""}`
+    : null;
 
   const change = data?.analytics?.change ?? null
   const hasChange = typeof change === 'number'
@@ -58,6 +88,9 @@ export default function WelcomeBar() {
         {data?.analytics && (
           <div className="wb-ticker slide-up">
             <span className="wb-label">Active users</span>
+            <span className="wb-value">
+              {data.analytics.activeUsers ?? "--"}
+            </span>
             <span className="wb-value">{data.analytics.activeUsers ?? '--'}</span>
             {hasChange && (
               <span className="wb-change">
@@ -68,5 +101,5 @@ export default function WelcomeBar() {
         )}
       </div>
     </div>
-  )
+  );
 }
