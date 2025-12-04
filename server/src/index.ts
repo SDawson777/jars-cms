@@ -122,7 +122,6 @@ app.get("/", (_req, res) => {
 });
 const staticDir = path.join(__dirname, "..", "static");
 app.use(express.static(staticDir));
-app.get("/", (_req, res) => res.sendFile(path.join(staticDir, "index.html")));
 
 // Admin auth routes (login/logout)
 app.use("/admin", adminAuthRouter);
