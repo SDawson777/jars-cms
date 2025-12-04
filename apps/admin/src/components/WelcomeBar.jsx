@@ -1,18 +1,14 @@
-import React, { useEffect, useState } from "react";
-import { apiJson } from "../lib/api";
-import "./welcome-bar.css";
+import React, { useEffect, useState } from 'react';
+import { apiJson } from '../lib/api';
+import './welcome-bar.css';
 
 // Simple arrow icons for up/down metrics
-const UpArrow = () => (
-  <span style={{ color: "#4ade80", fontWeight: 600 }}>▲</span>
-);
-const DownArrow = () => (
-  <span style={{ color: "#f87171", fontWeight: 600 }}>▼</span>
-);
+const UpArrow = () => <span style={{ color: '#4ade80', fontWeight: 600 }}>▲</span>;
+const DownArrow = () => <span style={{ color: '#f87171', fontWeight: 600 }}>▼</span>;
 
 const FALLBACK_BANNER = {
-  weather: { tempF: 72, condition: "Clear" },
-  analytics: { activeUsers: "--", change: null },
+  weather: { tempF: 72, condition: 'Clear' },
+  analytics: { activeUsers: '--', change: null },
   serverTime: new Date().toISOString(),
   city: null,
   region: null,
@@ -23,7 +19,7 @@ export default function WelcomeBar() {
 
   useEffect(() => {
     let mounted = true;
-    apiJson("/admin/banner")
+    apiJson('/admin/banner')
       .then(({ ok, data }) => {
         if (mounted && ok) setData(data || FALLBACK_BANNER);
         else if (mounted) setData(FALLBACK_BANNER);
@@ -39,18 +35,18 @@ export default function WelcomeBar() {
   const now = data?.serverTime ? new Date(data.serverTime) : new Date();
   const dateStr = now.toLocaleDateString();
   const timeStr = now.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
+    hour: '2-digit',
+    minute: '2-digit',
   });
 
   const weatherTemp = Math.round(data?.weather?.tempF ?? 72);
   const weatherDesc = data?.weather?.condition || "Clear";
   const locationLabel = data?.city
-    ? `${data.city}${data.region ? `, ${data.region}` : ""}`
+    ? `${data.city}${data.region ? `, ${data.region}` : ''}`
     : null;
 
   const change = data?.analytics?.change ?? null;
-  const hasChange = typeof change === "number";
+  const hasChange = typeof change === 'number';
   const changeValue = hasChange ? Math.abs(change) : null;
 
   return (
