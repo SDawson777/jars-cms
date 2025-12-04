@@ -1,35 +1,32 @@
-import dotenv from "dotenv";
-import express from "express";
-import { nimbusCors } from "./middleware/cors";
-import path from "path";
-import cookieParser from "cookie-parser";
-import helmet from "helmet";
-import compression from "compression";
-import rateLimit from "express-rate-limit";
-import morgan from "morgan";
-import swaggerUi from "swagger-ui-express";
-import { logger } from "./lib/logger";
-import adminAuthRouter from "./routes/adminAuth";
-import { requireAdmin } from "./middleware/adminAuth";
-import {
-  requireCsrfToken,
-  ensureCsrfCookie,
-} from "./middleware/requireCsrfToken";
-import { requestLogger } from "./middleware/requestLogger";
-import { swaggerSpec } from "./lib/swagger";
+import dotenv from 'dotenv'
+import express from 'express'
+import {nimbusCors} from './middleware/cors'
+import path from 'path'
+import cookieParser from 'cookie-parser'
+import helmet from 'helmet'
+import compression from 'compression'
+import rateLimit from 'express-rate-limit'
+import morgan from 'morgan'
+import swaggerUi from 'swagger-ui-express'
+import {logger} from './lib/logger'
+import adminAuthRouter from './routes/adminAuth'
+import {requireAdmin} from './middleware/adminAuth'
+import {requireCsrfToken, ensureCsrfCookie} from './middleware/requireCsrfToken'
+import {requestLogger} from './middleware/requestLogger'
+import {swaggerSpec} from './lib/swagger'
 
-import { contentRouter } from "./routes/content";
-import { personalizationRouter } from "./routes/personalization";
-import { statusRouter } from "./routes/status";
-import { adminRouter } from "./routes/admin";
-import analyticsRouter from "./routes/analytics";
-import aiRouter from "./routes/ai";
-import { startComplianceScheduler } from "./jobs/complianceSnapshotJob";
+import {contentRouter} from './routes/content'
+import {personalizationRouter} from './routes/personalization'
+import {statusRouter} from './routes/status'
+import {adminRouter} from './routes/admin'
+import analyticsRouter from './routes/analytics'
+import aiRouter from './routes/ai'
+import {startComplianceScheduler} from './jobs/complianceSnapshotJob'
 
-dotenv.config();
+dotenv.config()
 
-const requiredSecrets = ["JWT_SECRET"] as const;
-const missingSecrets = requiredSecrets.filter((key) => !process.env[key]);
+const requiredSecrets = ['JWT_SECRET'] as const
+const missingSecrets = requiredSecrets.filter((key) => !process.env[key])
 if (missingSecrets.length) {
   throw new Error(
     `Missing required environment variable${missingSecrets.length > 1 ? "s" : ""}: ${missingSecrets.join(
@@ -93,14 +90,12 @@ app.use(
     standardHeaders: true,
     legacyHeaders: false,
   }),
-);
-app.use(
-  morgan(":method :url :status :res[content-length] - :response-time ms"),
-);
-app.use(express.urlencoded({ extended: true }));
-app.use(requestLogger);
+)
+app.use(morgan(':method :url :status :res[content-length] - :response-time ms'))
+app.use(express.urlencoded({extended: true}))
+app.use(requestLogger)
 
-app.use(nimbusCors);
+app.use(nimbusCors)
 
 // Parse cookies (used by admin auth)
 app.use(cookieParser());

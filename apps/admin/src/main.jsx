@@ -92,10 +92,10 @@ function AppShell() {
           <div
             className="logo"
             style={{
-              width: "140px",
-              height: "var(--logo-height)",
-              background: "linear-gradient(90deg, var(--accent), #3b82f6)",
-              borderRadius: "0.5rem",
+              width: '140px',
+              height: 'var(--logo-height)',
+              background: 'linear-gradient(90deg, var(--accent), #3b82f6)',
+              borderRadius: '0.5rem',
             }}
             aria-hidden="true"
           />

@@ -17,6 +17,13 @@ const FALLBACK_BANNER = {
   city: null,
   region: null,
 };
+import React, { useEffect, useState } from 'react'
+import { apiJson } from '../lib/api'
+import './welcome-bar.css'
+
+// Simple arrow icons for up/down metrics
+const UpArrow = () => <span style={{ color: '#4ade80', fontWeight: 600 }}>▲</span>
+const DownArrow = () => <span style={{ color: '#f87171', fontWeight: 600 }}>▼</span>
 
 export default function WelcomeBar() {
   const [data, setData] = useState(FALLBACK_BANNER);
@@ -42,6 +49,9 @@ export default function WelcomeBar() {
     hour: "2-digit",
     minute: "2-digit",
   });
+  const now = data?.serverTime ? new Date(data.serverTime) : new Date()
+  const dateStr = now.toLocaleDateString()
+  const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
   const weatherTemp = Math.round(data?.weather?.tempF ?? 72);
   const weatherDesc = data?.weather?.condition || "Clear";
@@ -49,9 +59,9 @@ export default function WelcomeBar() {
     ? `${data.city}${data.region ? `, ${data.region}` : ""}`
     : null;
 
-  const change = data?.analytics?.change ?? null;
-  const hasChange = typeof change === "number";
-  const changeValue = hasChange ? Math.abs(change) : null;
+  const change = data?.analytics?.change ?? null
+  const hasChange = typeof change === 'number'
+  const changeValue = hasChange ? Math.abs(change) : null
 
   return (
     <div className="welcome-bar">
@@ -59,7 +69,7 @@ export default function WelcomeBar() {
         <div className="wb-greet">Welcome, Admin</div>
         <div className="wb-meta">
           {dateStr} · {timeStr}
-          {locationLabel ? ` · ${locationLabel}` : ""}
+          {locationLabel ? ` · ${locationLabel}` : ''}
         </div>
       </div>
 
@@ -81,6 +91,7 @@ export default function WelcomeBar() {
             <span className="wb-value">
               {data.analytics.activeUsers ?? "--"}
             </span>
+            <span className="wb-value">{data.analytics.activeUsers ?? '--'}</span>
             {hasChange && (
               <span className="wb-change">
                 {change >= 0 ? <UpArrow /> : <DownArrow />} {changeValue}%
