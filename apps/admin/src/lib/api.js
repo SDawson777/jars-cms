@@ -3,9 +3,11 @@ import { safeJson } from "./safeJson";
 import { getCsrfToken } from "./csrf";
 
 // Respect the provided base URL without stripping trailing API segments; only remove trailing slashes.
-const API_BASE = (import.meta.env.VITE_NIMBUS_API_URL || "")
+const API_BASE = (import.meta.env.VITE_API_URL || "")
   .trim()
   .replace(/\/$/, "");
+
+export const APP_ENV = (import.meta.env.VITE_APP_ENV || "").trim();
 
 export const api = axios.create({
   baseURL: API_BASE,
