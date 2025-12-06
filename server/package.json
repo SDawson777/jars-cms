@@ -12,6 +12,7 @@
     "test": "echo \"No server tests defined\""
   },
   "dependencies": {
+    "@prisma/client": "^5.20.0",
     "@sanity/client": "^7.13.1",
     "bcryptjs": "^2.4.3",
     "compression": "^1.8.1",

@@ -1,4 +1,3 @@
-import dotenv from 'dotenv'
 import express from 'express'
 import {nimbusCors} from './middleware/cors'
 import path from 'path'
@@ -22,21 +21,11 @@ import {adminRouter} from './routes/admin'
 import analyticsRouter from './routes/analytics'
 import aiRouter from './routes/ai'
 import {startComplianceScheduler} from './jobs/complianceSnapshotJob'
-
-dotenv.config()
-
-const requiredSecrets = ['JWT_SECRET'] as const
-const missingSecrets = requiredSecrets.filter((key) => !process.env[key])
-if (missingSecrets.length) {
-  throw new Error(
-    `Missing required environment variable${missingSecrets.length > 1 ? 's' : ''}: ${missingSecrets.join(
-      ', ',
-    )}`,
-  )
-}
+import {seedControlPlane} from './seed'
+import {APP_ENV, JWT_SECRET, PORT} from './config/env'
 
 const isProduction = process.env.NODE_ENV === 'production'
-const jwtSecret = process.env.JWT_SECRET || ''
+const jwtSecret = JWT_SECRET
 const weakJwtValues = new Set([
   'change_me_in_prod',
   'changeme',
@@ -160,6 +149,20 @@ if (process.env.ENABLE_COMPLIANCE_SCHEDULER === 'true') {
   } catch (e) {
     logger.error('failed to start compliance scheduler', e)
   }
+}
+
+export async function startServer() {
+  await seedControlPlane()
+
+  app.listen(PORT, () => {
+    logger.info('server.started', {port: PORT, appEnv: APP_ENV})
+  })
+}
+
+if (require.main === module) {
+  startServer().catch((err) => {
+    logger.error('failed to start server', err)
+  })
 }
 
 export default app
